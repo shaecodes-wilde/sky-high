@@ -9,6 +9,8 @@ import { buildCharacter, type CharacterId } from './characters';
 import { Particles } from './Particles';
 import { Pix } from './pixel';
 import * as art from './props';
+import { Bursts } from './Bursts';
+import { CLOUD, PLATES } from './palette';
 import { chooseAnim, PresentationSignals, type MotionSignals } from './signals';
 
 // Three.js is only the renderer here: it draws the simulation's state at a
@@ -27,8 +29,10 @@ const ORDER = {
   hazard: 13,
   collectible: 14,
   ring: 15,
+  shadow: 11.5,
   npc: 18,
   afterimage: 19,
+  burst: 19.5,
   player: 20,
   particles: 21,
   bubble: 22,
@@ -99,6 +103,12 @@ export class GameRenderer {
   private layers: ParallaxLayer[] = createParallax();
   readonly particles = new Particles();
   private signals = new PresentationSignals();
+  private bursts!: Bursts;
+  /** Landing shadow: where the player will touch down (sizes 0..3, near → far). */
+  private shadow!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private shadowTex: THREE.Texture[] = [];
+  /** A second, out-of-register impression of the live sprite at speed. */
+  private regGhost!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   private texCache = new Map<string, THREE.Texture>();
   private matCache = new Map<THREE.Texture, THREE.MeshBasicMaterial>();
   private geoCache = new Map<string, THREE.PlaneGeometry>();
@@ -165,6 +175,13 @@ export class GameRenderer {
     this.scene.add(this.sky);
     for (const l of this.layers) this.scene.add(l.mesh);
     this.scene.add(this.particles.points);
+    this.bursts = new Bursts(this.scene, ORDER.burst);
+    this.shadowTex = [14, 11, 8, 5].map((w, i) => shadowPix(w, i).toTexture());
+    this.shadow = new THREE.Mesh(this.geo(16, 3, 'bc'), new THREE.MeshBasicMaterial({ map: this.shadowTex[0], transparent: true, depthTest: false, depthWrite: false }));
+    this.shadow.renderOrder = ORDER.shadow;
+    this.shadow.frustumCulled = false;
+    this.shadow.visible = false;
+    this.scene.add(this.shadow);
     this.resize();
   }
 
@@ -356,6 +373,22 @@ export class GameRenderer {
       this.scene.add(mesh);
       this.afterimages.push({ mesh, life: 0 });
     }
+    this.regGhost = new THREE.Mesh(
+      this.geo(FRAME_W, FRAME_H, 'bc'),
+      new THREE.ShaderMaterial({
+        vertexShader: BASIC_VERT,
+        fragmentShader: AFTERIMAGE_FRAG,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        uniforms: { map: { value: null }, uTint: { value: new THREE.Color(PLATES[1]) }, uAlpha: { value: 0.5 } },
+      }),
+    );
+    this.regGhost.renderOrder = ORDER.afterimage;
+    this.regGhost.visible = false;
+    this.regGhost.frustumCulled = false;
+    this.scene.add(this.regGhost);
     for (const n of level.npcs) {
       const m = new THREE.Mesh(this.geo(FRAME_W, FRAME_H, 'bc'), new THREE.MeshBasicMaterial({ transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
       m.position.set(n.x, n.y, 0);
@@ -407,19 +440,23 @@ export class GameRenderer {
     for (const e of events) {
       switch (e.type) {
         case 'jump':
+          this.bursts.spawn('jump', e.x, e.y);
           P.emit('dust', e.x, e.y + 1, 5, 0, 1);
           P.emit(poppy ? 'spore' : 'droplet', e.x, e.y + 8, 3);
           break;
         case 'land':
+          this.bursts.spawn(e.impact > w.player.cfg.maxFall * 0.75 ? 'landHard' : 'land', e.x, e.y);
           P.emit('dust', e.x, e.y + 1, e.impact > 250 ? 10 : 5, 0, 1);
           if (e.impact > 320) this.shake = Math.max(this.shake, 0.35 * pres.shake);
           if (!poppy && e.impact > 200) P.emit('droplet', e.x, e.y + 10, 4);
           break;
         case 'dash':
+          this.bursts.spawn('dash', e.x - e.dir * 14, e.y + 11, e.dir);
           P.emit('dust', e.x, e.y + 11, 8, -e.dir, 0);
           P.emit(poppy ? 'petal' : 'droplet', e.x, e.y + 12, 6, -e.dir, 0);
           break;
         case 'spring':
+          this.bursts.spawn('spring', w.springs[e.spring]?.x ?? e.x, (w.springs[e.spring]?.top ?? e.y) + 4);
           P.emit(poppy ? 'petal' : 'droplet', e.x, e.y, e.boosted ? 12 : 7, 0, 1);
           P.emit('sparkle', e.x, e.y, e.boosted ? 8 : 3, 0, 1);
           break;
@@ -430,12 +467,14 @@ export class GameRenderer {
           P.emit('dust', e.x, e.y + 1, 4, w.player.facing, 0);
           break;
         case 'ring':
+          this.bursts.spawn('ring', e.x, e.y);
           P.emit('dew', e.x, e.y, 14);
           break;
         case 'seed':
           P.emit('gold', e.x, e.y, 4);
           break;
         case 'fragment':
+          this.bursts.spawn('fragment', e.x, e.y);
           P.emit('sparkle', e.x, e.y, 20);
           P.emit('confetti', e.x, e.y, 12);
           break;
@@ -443,6 +482,7 @@ export class GameRenderer {
           P.emit('sparkle', e.x, e.y, 14);
           break;
         case 'checkpoint':
+          this.bursts.spawn('checkpoint', e.x, e.y + 21);
           P.emit('petal', e.x, e.y + 14, 10, 0, 1);
           break;
         case 'death':
@@ -474,6 +514,7 @@ export class GameRenderer {
 
   clearTransient(): void {
     this.particles.clear();
+    this.bursts.clear();
     this.signals.reset();
     for (const b of this.bubbles) this.removeBubble(b);
     this.bubbles.length = 0;
@@ -638,6 +679,8 @@ export class GameRenderer {
     this.bubbles = this.bubbles.filter((b) => b.life > 0);
 
     this.particles.update(dt);
+    this.bursts.enabled = pres.particles > 0;
+    this.bursts.update(dt);
 
     // Draw low-res, then upscale.
     this.renderer.setRenderTarget(this.target);
@@ -680,30 +723,70 @@ export class GameRenderer {
     m.position.set(x, y, 0);
     m.scale.x = p.facing;
 
-    // Afterimages trail behind the live sprite.
-    const fast = Math.abs(p.vx) > p.cfg.runSpeed * 1.15;
-    const want = input.pres.afterimages && m.visible && (p.dashing || (fast && bloom > 0.55));
+    // Print stamps: the sprite re-pressed in single plate colours along the path.
+    // Dashes always stamp; ordinary running only stamps once the sky is singing.
+    const fast = sig.speed > 1.15;
+    const singing = sig.mood >= 1.6;
+    const want = input.pres.afterimages && m.visible && (sig.dashing || (fast && singing));
     this.afterTimer -= dt;
+    if (sig.dashStarted) this.afterTimer = 0;
     if (want && this.afterTimer <= 0) {
-      this.afterTimer = p.dashing ? 0.03 : 0.07;
+      this.afterTimer = sig.dashing ? 0.035 : 0.08;
       const slot = this.afterimages.reduce((a, b) => (a.life < b.life ? a : b));
-      const tints = ['#ff9fd0', '#9ff0d0', '#ffe27a', '#b9a8ff'];
-      slot.life = 0.24;
+      slot.life = sig.dashing ? 0.26 : 0.2;
       slot.mesh.material.uniforms.map.value = tex;
-      slot.mesh.material.uniforms.uTint.value.set(tints[this.afterColor++ % tints.length]);
+      slot.mesh.material.uniforms.uTint.value.set(PLATES[this.afterColor++ % PLATES.length]);
       slot.mesh.position.set(x, y, 0);
       slot.mesh.scale.x = p.facing;
     }
     for (const a of this.afterimages) {
       a.life -= dt;
       a.mesh.visible = a.life > 0;
-      if (a.life > 0) a.mesh.material.uniforms.uAlpha.value = Math.min(0.75, (a.life / 0.24) * 0.9);
+      if (a.life > 0) a.mesh.material.uniforms.uAlpha.value = Math.min(0.75, (a.life / 0.26) * 0.9);
     }
+
+    // Misregistration: a mint plate printed 2 px behind the live sprite at full flow.
+    const reg = input.pres.afterimages && m.visible && (sig.dashing || (singing && sig.energy > 0.55));
+    this.regGhost.visible = reg;
+    if (reg) {
+      const u = this.regGhost.material.uniforms;
+      u.map.value = tex;
+      u.uTint.value.set(sig.dashing ? PLATES[1] : PLATES[0]);
+      u.uAlpha.value = sig.dashing ? 0.75 : 0.5;
+      this.regGhost.position.set(x - p.facing * 2, y + (sig.dashing ? 0 : 1), 0);
+      this.regGhost.scale.x = p.facing;
+    }
+
+    // Landing shadow: a soft carved dot on whatever surface is directly below,
+    // shrinking with height — a read of where the jump will come down.
+    this.updateShadow(w, x, y, m.visible && !w.dead);
 
     // Petal wake / spores at high Bloom while running.
     if (m.visible && p.grounded && fast && bloom > 0.6 && Math.random() < 0.35 * input.pres.particles) {
       this.particles.emit(this.character === 'poppy' ? 'wake' : 'droplet', p.x - p.facing * 6, p.y + 3, 1, -p.facing, 0.3);
     }
+    // Singing: loose notes lift off the player now and then.
+    if (m.visible && singing && sig.energy > 0.4 && Math.random() < 0.08 * input.pres.particles) {
+      this.particles.emit('note', p.x - p.facing * 4, p.y + 18, 1, -p.facing * 0.3, 1);
+    }
+  }
+
+  private updateShadow(w: World, x: number, y: number, show: boolean): void {
+    const sh = this.shadow;
+    sh.visible = false;
+    if (!show) return;
+    let best = -Infinity;
+    for (const s of w.solids) {
+      if (!s.active || x < s.x || x > s.x + s.w) continue;
+      const top = s.y + s.h;
+      if (top <= y + 0.5 && top > best) best = top;
+    }
+    const h = y - best;
+    if (best === -Infinity || h > 150) return;
+    const size = h < 6 ? 0 : h < 40 ? 1 : h < 90 ? 2 : 3;
+    sh.material.map = this.shadowTex[size];
+    sh.position.set(x, Math.round(best) - 3, 0);
+    sh.visible = true;
   }
 
   // ── sizing ───────────────────────────────────────────────────────────
@@ -739,4 +822,20 @@ export class GameRenderer {
     ctx.drawImage(src, 0, 0, cv.width, cv.height);
     return cv;
   }
+}
+
+/** A dithered carved-shadow ellipse (never solid, so it can't read as a surface). */
+function shadowPix(w: number, size: number): Pix {
+  const p = new Pix(16, 3);
+  const rx = w / 2;
+  for (let y = 0; y < 3; y++) {
+    for (let x = 0; x < 16; x++) {
+      const dx = (x + 0.5 - 8) / rx;
+      const dy = (y + 0.5 - 1.5) / 1.5;
+      if (dx * dx + dy * dy > 1) continue;
+      const solid = dx * dx + dy * dy < 0.35 && size < 2;
+      if (solid || (x + y) % 2 === 0) p.px(x, y, CLOUD.groove);
+    }
+  }
+  return p;
 }

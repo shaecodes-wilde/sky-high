@@ -110,6 +110,8 @@ describe('production World recordings and physically timestamped catch-up', () =
   it('rejects corrupt physical ages and out-of-order physical timestamps', () => {
     expect(() => replayInputs([{ step: 0, directionEvents: [{ dir: 1, down: true, age: NaN }] }])).toThrow('Directional');
     expect(() => replayInputs([{ step: 0, directionEvents: [{ dir: 1, down: false, age: 0.004 }, { dir: 1, down: true, age: 0.010 }] }])).toThrow('ordered');
+    expect(() => replayInputs([{ step: 0, directionEvents: [{ dir: 1, down: false, age: 0.004 }] }, { step: 0, directionEvents: [{ dir: 1, down: true, age: 0.010 }] }])).toThrow('ordered');
+    expect(() => replayInputs([{ step: 1, dash: 1 }])(new World(fixture, MOVEMENT, 'timeTrial'), 2)).toThrow('skip');
     expect(() => traversePhysical(fixture, MOVEMENT, [...held, { ...held[0], time: -1 }], 30)).toThrow('timestamps');
   });
 });

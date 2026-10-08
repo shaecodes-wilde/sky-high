@@ -48,6 +48,7 @@ export interface TraversalState {
 }
 
 export interface TraversalLanding extends TraversalState {
+  /** Geometry/signed speed are from land; resource/timer fields are end-of-tick. */
   impact: number;
   /** The following takeoff (if any), with the actual carried exit velocity. */
   exit: TraversalState | null;
@@ -96,15 +97,23 @@ export type TraversalInput = (world: World, step: number) => InputFrame;
 export function replayInputs(recording: readonly RecordedInput[]): TraversalInput {
   let cursor = 0;
   let held = { ...NO_INPUT };
+  let edgeStep = -1;
+  let previousAge = Infinity;
   for (let i = 0; i < recording.length; i++) {
     const step = recording[i].step;
     if (!Number.isInteger(step) || step < 0 || (i > 0 && step < recording[i - 1].step)) throw new Error('Input recording must use ordered non-negative simulation steps');
     const edges = recording[i].directionEvents;
+    if (step !== edgeStep) { edgeStep = step; previousAge = Infinity; }
     if (edges?.some((e, n) => (e.dir !== -1 && e.dir !== 1) || typeof e.down !== 'boolean' || !Number.isFinite(e.age) || e.age < 0 || e.age > SIM_DT || (n > 0 && e.age > edges[n - 1].age))) {
       throw new Error('Directional edges must be ordered within the fixed-step interval');
     }
+    for (const edge of edges ?? []) {
+      if (edge.age > previousAge) throw new Error('Directional edges must be ordered across cues in the same step');
+      previousAge = edge.age;
+    }
   }
   return (_world, step) => {
+    if (cursor < recording.length && recording[cursor].step < step) throw new Error('Replay cannot skip queued input commands');
     const frame = { ...held, jumpPressed: false, dash: 0 } as InputFrame;
     while (cursor < recording.length && recording[cursor].step === step) {
       const cue = recording[cursor++];

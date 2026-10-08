@@ -33,9 +33,17 @@ async function boot(): Promise<void> {
     return;
   }
   // Developer tools are excluded from production builds and cannot submit records.
-  const dev = import.meta.env.DEV && new URLSearchParams(location.search).has('playground')
+  const query = new URLSearchParams(location.search);
+  const laboratory = import.meta.env.DEV && query.has('skyflow')
+    ? await import('./level/skyflowLaboratory') : null;
+  const dev = import.meta.env.DEV && (query.has('playground') || laboratory)
     ? await import('./dev/playground') : null;
-  const game = new Game(renderer, ui, dev ? { level: dev.PLAYGROUND_LEVEL, playground: new dev.PlaygroundSession() } : {});
+  const game = new Game(renderer, ui, dev ? {
+    level: laboratory?.SKYFLOW_LEVEL ?? dev.PLAYGROUND_LEVEL,
+    playground: laboratory
+      ? new dev.PlaygroundSession(laboratory.SKYFLOW_SECTIONS, 'Skyflow Laboratory')
+      : new dev.PlaygroundSession(),
+  } : {});
   // Exposed for debugging and automated smoke checks.
   (window as unknown as { cloudbloom: Game }).cloudbloom = game;
 }

@@ -3,6 +3,25 @@
 
 export type PlatformKind = 'island' | 'cloud' | 'petal' | 'flower';
 
+/** Authored heightfield control point. Slope is dy/dx, in y-up coordinates. */
+export interface TerrainKnot {
+  x: number;
+  y: number;
+  slope: number;
+}
+
+/** Continuous piecewise cubic Hermite ground; islands are solid to bottom. */
+export interface TerrainDef {
+  id: number;
+  kind: 'island' | 'cloud';
+  knots: TerrainKnot[];
+  bottom: number;
+  /** Enable only substantial downhill-to-uphill valleys for directional pumps. */
+  pump?: boolean;
+  recovery?: boolean;
+  parade?: boolean;
+}
+
 export interface PlatformDef {
   id: number;
   kind: PlatformKind;
@@ -97,6 +116,8 @@ export interface LevelData {
   minX: number;
   maxX: number;
   platforms: PlatformDef[];
+  /** Optional authored slopes. IDs must be distinct from platform IDs. */
+  terrain?: TerrainDef[];
   springs: SpringDef[];
   rings: RingDef[];
   winds: WindDef[];

@@ -12,11 +12,13 @@ export class FixedLoop {
   ) {}
 
   /** Runs whole steps for `frameDt` seconds of real time; returns interpolation alpha in [0, 1). */
-  advance(frameDt: number, stepFn: () => void): number {
+  advance(frameDt: number, stepFn: (remainingSeconds: number) => void): number {
     this.acc += Math.min(Math.max(frameDt, 0), this.maxFrame);
     let n = 0;
     while (this.acc >= this.step && n < this.maxSteps) {
-      stepFn();
+      // The caller can map this authoritative boundary back to its frame
+      // timestamp. Catch-up steps must not consume future keyboard events.
+      stepFn(Math.max(0, this.acc - this.step));
       this.acc -= this.step;
       n++;
     }

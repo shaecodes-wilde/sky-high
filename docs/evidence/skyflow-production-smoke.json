@@ -1,0 +1,28 @@
+{
+  "audio": "running",
+  "clear": {
+    "height": 22,
+    "rolling": false,
+    "vx": 198.8,
+    "x": 261.87222222222226,
+    "y": 64
+  },
+  "developerPanel": false,
+  "held": {
+    "height": 12,
+    "rolling": true,
+    "vx": 229.8,
+    "x": 151.40888888888898,
+    "y": 64
+  },
+  "level": "morning-that-forgot",
+  "query": "?skyflow",
+  "released": {
+    "height": 22,
+    "rolling": false,
+    "vx": 228.8,
+    "x": 155.2222222222223,
+    "y": 64
+  },
+  "boundary": "Production static Vite preview with ?skyflow: normal Level1, no developer panel; synthetic held DOM keys through live RAF; actual Start click unlocks audio; store in memory."
+}

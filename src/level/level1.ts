@@ -17,6 +17,7 @@ import type {
 import { MOVEMENT, SIM_DT } from '../config/movement';
 import { Player } from '../sim/Player';
 import type { Solid } from '../sim/collision';
+import { LEVEL1_SKYFLOW_TERRAIN, level1SkyflowClouds } from './level1Skyflow';
 
 // "The Morning That Forgot to Happen" — hand-authored. Every gap on the
 // normal route is checked against measured controller reach in
@@ -346,6 +347,15 @@ const goalFlower = b.flower(8440, 8660, 196);
 b.link(p28, goalFlower, 'jump');
 b.arc(8384, 214, 8436, 214, 14, 3);
 
+// A deliberate boosted visit to the Duck Feather shelf opens a separate curled route.
+// Existing platform IDs, story coordinates and recorded route recipes stay intact.
+b.platforms.push(...level1SkyflowClouds(b.platforms.length));
+b.ring(4400, 395);
+b.signs.push({ x: 3570, y: 180, text: 'BOOST THE CAP\nFOR THE SKYWAY' });
+b.signs.push({ x: 3600, y: 330, text: 'WHISPERING SKYWAY\nHOLD DOWN TO ROLL' });
+b.row(3800, 3920, 347, 4);
+b.arc(4230, 372, 4350, 390, 20, 5);
+
 export const LEVEL1: LevelData = {
   id: 'morning-that-forgot',
   name: 'The Morning That Forgot to Happen',
@@ -354,6 +364,7 @@ export const LEVEL1: LevelData = {
   minX: -220,
   maxX: 8900,
   platforms: b.platforms,
+  terrain: LEVEL1_SKYFLOW_TERRAIN,
   springs: b.springs,
   rings: b.rings,
   winds: b.winds,

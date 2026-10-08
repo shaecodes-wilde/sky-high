@@ -3,7 +3,7 @@ import { hex } from './pixel';
 
 // Pooled square-pixel particles in a single draw call. Purely cosmetic.
 
-export type ParticleKind = 'dust' | 'petal' | 'spore' | 'droplet' | 'sparkle' | 'puff' | 'dew' | 'gold' | 'confetti' | 'wake';
+export type ParticleKind = 'dust' | 'petal' | 'spore' | 'droplet' | 'sparkle' | 'puff' | 'dew' | 'gold' | 'confetti' | 'wake' | 'mint';
 
 interface Spec {
   colors: string[];
@@ -27,6 +27,7 @@ const SPECS: Record<ParticleKind, Spec> = {
   gold: { colors: ['#ffd447', '#fff3a8'], speed: [20, 60], up: 30, gravity: 60, life: [0.3, 0.5], size: [1, 1], drag: 2, spread: Math.PI },
   confetti: { colors: ['#ff9fd0', '#ffd447', '#9ff0d0', '#b9a8ff', '#ffffff'], speed: [40, 120], up: 80, gravity: 70, life: [1.2, 2.2], size: [2, 2], drag: 1.2, spread: Math.PI },
   wake: { colors: ['#ff9fd0', '#ffd447', '#9ff0d0', '#ffffff'], speed: [4, 16], up: 6, gravity: -6, life: [0.5, 0.9], size: [1, 2], drag: 1, spread: Math.PI },
+  mint: { colors: ['#9ff0d0', '#ddfff1', '#73d9b4'], speed: [18, 42], up: 12, gravity: 25, life: [0.18, 0.32], size: [1, 2], drag: 4, spread: Math.PI * 0.6 },
 };
 
 const MAX = 900;
@@ -45,6 +46,7 @@ export class Particles {
   private grav = new Float32Array(MAX);
   private drag = new Float32Array(MAX);
   private next = 0;
+  private remainder: Partial<Record<ParticleKind, number>> = {};
   scale = 1;
 
   constructor() {
@@ -79,7 +81,11 @@ export class Particles {
 
   emit(kind: ParticleKind, x: number, y: number, count: number, dirX = 0, dirY = 0): void {
     const s = SPECS[kind];
-    const n = Math.max(0, Math.round(count * this.scale));
+    // Carry fractional single-particle emissions so Gentle also halves a wake
+    // emitted one pixel at a time. Work remains bounded by the existing pool.
+    const budget = Math.max(0, Math.min(MAX, count * this.scale)) + (this.remainder[kind] ?? 0);
+    const n = Math.floor(budget);
+    this.remainder[kind] = budget - n;
     for (let k = 0; k < n; k++) {
       const i = this.next;
       this.next = (this.next + 1) % MAX;
@@ -107,6 +113,7 @@ export class Particles {
   clear(): void {
     this.life.fill(0);
     this.col.fill(0);
+    this.remainder = {};
   }
 
   update(dt: number): void {

@@ -1,5 +1,11 @@
 # Momentum and movement handoff
 
+Historical handoff for movement rules 2, merged into `master` before Skyflow.
+For current movement behavior and tuning, read
+[MOVEMENT_DESIGN.md](MOVEMENT_DESIGN.md) and
+[CLOUD_CURL_PHYSICS.md](CLOUD_CURL_PHYSICS.md).
+The measurements below describe the earlier build.
+
 Implemented on `feat/momentum-movement-flow`, based on remote `master` at `5cef1be`. The default branch is unchanged. This is measured engineering tuning, pending human feel-testing.
 
 ## Controller contract and tuning

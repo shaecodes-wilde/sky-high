@@ -1,0 +1,62 @@
+{
+  "boundary": "Short Chromium RAF samples on final physics/C presentation; naturally activated Parade, Vivid and forced full Bloom. CPU time measures renderer submission, not GPU completion; not sustained performance or device evidence.",
+  "audioIdle": {
+    "frames": 120,
+    "preset": "vivid",
+    "forcedBloom": 1,
+    "initial": {
+      "parade": "active",
+      "paradeTime": 3.016666666666661,
+      "x": 5063.394398267789,
+      "y": 158.8
+    },
+    "final": {
+      "complete": false,
+      "dead": false,
+      "paradeTime": 5.083333333333321,
+      "x": 5507.9901754548055,
+      "y": 110
+    },
+    "renderCpuMs": {
+      "mean": 2.0241666668094696,
+      "p95": 2.800000000745058,
+      "max": 29.40000000037253
+    },
+    "frameIntervalMs": {
+      "mean": 16.643333333342646,
+      "p95": 16.90000000037253,
+      "max": 31
+    },
+    "audio": "idle",
+    "boundary": "120 actual Chromium RAF frames, Vivid, forced full Bloom, naturally activated Parade; renderer CPU submission, not GPU completion; short sample, audio idle"
+  },
+  "audioRunning": {
+    "audio": "running",
+    "final": {
+      "complete": false,
+      "dead": false,
+      "paradeTime": 4.999999999999988,
+      "x": 5487.2401754548055,
+      "y": 110
+    },
+    "forcedBloom": 1,
+    "frameIntervalMs": {
+      "max": 17.5,
+      "mean": 16.415833333336437,
+      "p95": 17.100000001490116
+    },
+    "frames": 120,
+    "initial": {
+      "parade": "active",
+      "paradeTime": 3.016666666666661,
+      "x": 5063.394398267789,
+      "y": 158.8
+    },
+    "preset": "vivid",
+    "renderCpuMs": {
+      "max": 5.400000000372529,
+      "mean": 2.384999999993791,
+      "p95": 4.199999999254942
+    }
+  }
+}

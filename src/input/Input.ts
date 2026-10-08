@@ -1,5 +1,5 @@
 import { DEFAULT_BINDINGS, type Action } from '../config/keys';
-import { DOUBLE_TAP_DEFAULT_MS } from '../config/movement';
+import { DOUBLE_TAP_DEFAULT_MS, SIM_DT } from '../config/movement';
 import type { InputFrame } from '../sim/Player';
 
 type Dir = -1 | 1;
@@ -122,13 +122,25 @@ export class Input {
    * Produces the input for one simulation step. `airborne` and `facing`
    * describe the player at the start of the step.
    */
-  sample(airborne: boolean, facing: Dir, now: number): InputFrame {
+  sample(airborne: boolean, facing: Dir, now: number, rolling = false): InputFrame {
     let jumpPressed = false;
     let dash: -1 | 0 | 1 = 0;
+    let directionPressed: -1 | 0 | 1 = 0;
+    let directionReleased: -1 | 0 | 1 = 0;
+    const directionEvents: NonNullable<InputFrame['directionEvents']> = [];
+    // Include curl intent queued in this batch: the takeoff step must not
+    // seed an airborne double tap with a grounded rolling directional pulse.
+    // Catch-up steps sample their own physical time boundary. Events from a
+    // later boundary stay queued, even though the live keyboard held set has
+    // already changed by the time the render frame delivers them.
+    const due = this.queue.filter((event) => event.t <= now);
+    this.queue = this.queue.filter((event) => event.t > now);
+    const groundRoll = !airborne && (rolling || this.bindings.roll.some((code) => this.procHeld.has(code)) || due.some((event) => event.action === 'roll' && event.down));
+    if (groundRoll) this.tap = null;
     // Compare press timestamps while processing the queue. Expiring against
     // render time first could discard a timely second tap queued during a
     // slow frame, even though both physical presses were inside the window.
-    for (const ev of this.queue) {
+    for (const ev of due) {
       if (ev.down) this.procHeld.add(ev.code);
       else this.procHeld.delete(ev.code);
       if (ev.action === 'left' || ev.action === 'right') {
@@ -139,6 +151,9 @@ export class Input {
           this.dirOrder = this.dirOrder.filter((d) => d !== dir);
           this.dirOrder.push(dir);
           if (otherKeysHeld) continue; // not a fresh press of this direction
+          directionPressed = dir;
+          directionEvents.push({ dir, down: true, age: Math.min(SIM_DT, Math.max(0, (now - ev.t) / 1000)) });
+          if (groundRoll) continue;
           const tap = this.tap;
           if (tap && tap.dir === dir && tap.released && ev.t >= tap.t && ev.t - tap.t <= this.doubleTapMs) {
             this.tap = null;
@@ -151,6 +166,8 @@ export class Input {
         } else {
           if (!this.dirHeld(dir)) {
             this.dirOrder = this.dirOrder.filter((d) => d !== dir);
+            directionReleased = dir;
+            directionEvents.push({ dir, down: false, age: Math.min(SIM_DT, Math.max(0, (now - ev.t) / 1000)) });
             if (this.tap && this.tap.dir === dir) this.tap.released = true;
           }
         }
@@ -169,10 +186,10 @@ export class Input {
         dash = held ?? facing;
       }
     }
-    this.queue.length = 0;
     if (this.tap && now - this.tap.t > this.doubleTapMs) this.tap = null;
     const move = (this.dirOrder[this.dirOrder.length - 1] ?? 0) as -1 | 0 | 1;
-    return { move, jumpHeld: this.jumpHeld, jumpPressed, dash };
+    const rollHeld = this.bindings.roll.some((code) => this.procHeld.has(code));
+    return { move, jumpHeld: this.jumpHeld, jumpPressed, dash, rollHeld, directionPressed, directionReleased, directionEvents };
   }
 
   dispose(): void {

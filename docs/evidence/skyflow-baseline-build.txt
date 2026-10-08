@@ -1,0 +1,8 @@
+Baseline: origin/master 0701b28, 2026-10-08.
+Node v24.13.0; npm 11.6.2.
+npm ci: 45 packages installed; audit 0 vulnerabilities.
+npm test -- --reporter=default --reporter=json --outputFile=docs/evidence/skyflow-baseline-tests.json
+Result: 260 passing tests in 9 files, 0 failures. Detailed receipt: skyflow-baseline-tests.json.
+npm run build
+Result: TypeScript and Vite production build passed; 34 transformed modules.
+Main bundle 641.66 kB; gzip 171.73 kB. No production playground bundle.

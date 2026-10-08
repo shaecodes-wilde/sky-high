@@ -1,13 +1,14 @@
 import * as THREE from 'three';
-import { ANIMS, FRAME_H, FRAME_W, RUN_FPS_RANGE, type AnimName } from '../config/animation';
+import { ANIMS, FRAME_H, FRAME_W, ROLL_VISUAL, RUN_FPS_RANGE, chooseSkyflowAnim, readSkyflowVisual, skyflowFrame, type AnimName } from '../config/animation';
 import type { Presentation } from '../config/presentation';
-import type { LevelData } from '../level/types';
+import type { LevelData, TerrainDef } from '../level/types';
 import type { World, WorldEvent } from '../sim/World';
+import { sampleTerrain, terrainCriticalXs, terrainToSolid } from '../sim/terrain';
 import { createParallax, createSky, createWindMesh, placeParallax, type ParallaxLayer } from './background';
 import { VIEW_H, VIEW_W, type CameraRig } from './CameraRig';
 import { buildCharacter, type CharacterId } from './characters';
 import { Particles } from './Particles';
-import { Pix } from './pixel';
+import { hex, Pix } from './pixel';
 import * as art from './props';
 
 // Three.js is only the renderer here: it draws the simulation's state at a
@@ -77,6 +78,18 @@ interface Bubble {
   life: number;
 }
 
+/** Temporary additive event seam while the controller worktree is integrated. */
+export type SkyflowPresentationEvent =
+  | { type: 'curl' | 'uncurl' | 'launch'; x: number; y: number }
+  | { type: 'pump'; x: number; y: number; quality: 'good' | 'perfect'; valley: string };
+
+interface SurfacePulse {
+  mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  life: number;
+  duration: number;
+  strength: number;
+}
+
 export interface RenderInput {
   world: World;
   camera: CameraRig;
@@ -85,6 +98,45 @@ export interface RenderInput {
   showPlayer: boolean;
   /** Real seconds since the previous frame (presentation-only animation). */
   frameDt: number;
+}
+
+/** Rasterises the same analytic terrain that collision uses, in small cached tiles. */
+export function drawCurvedTerrain(def: TerrainDef, tileX0: number, tileX1: number): { pix: Pix; x: number; bottom: number } {
+  const bounds = terrainToSolid(def);
+  const x = Math.floor(tileX0);
+  const width = Math.ceil(tileX1) - x;
+  const bottom = Math.floor(def.kind === 'cloud'
+    ? Math.min(...terrainCriticalXs(def, bounds.x, bounds.x + bounds.w).map((x) => sampleTerrain(def, x)!.y)) - 23
+    : def.bottom);
+  // Analytic extrema include a crest higher than either authored knot.
+  const top = Math.ceil(bounds.y + bounds.h);
+  const pix = new Pix(width, Math.max(1, top - bottom));
+  const P = art.PAL;
+  const stone = [P.rockL, P.rock, P.rockD];
+  for (let col = 0; col < width; col++) {
+    const worldX = x + col + 0.5;
+    if (worldX < tileX0 || worldX > tileX1) continue;
+    const sample = sampleTerrain(def, worldX);
+    if (!sample) continue;
+    const surfaceRow = top - Math.round(sample.y);
+    const thickness = def.kind === 'cloud' ? 15 + Math.round(3 * Math.sin(worldX * 0.22 + def.id)) : pix.h - surfaceRow;
+    for (let depth = 0; depth < thickness; depth++) {
+      let color: string;
+      if (def.kind === 'cloud') color = depth < 2 ? P.cloudTop : depth < 6 ? P.cloud : depth < 10 ? P.cloudS1 : P.cloudS2;
+      else if (depth < 2) color = P.grassL;
+      else if (depth < 5) color = P.grass;
+      else if (depth < 8 + ((Math.floor(worldX) * 7 + def.id) & 3)) color = P.grassD;
+      else {
+        const cell = Math.abs(Math.floor(worldX / 11) * 17 + Math.floor((sample.y - depth) / 9) * 7 + def.id);
+        color = depth > pix.h - surfaceRow - 15 ? P.mist : stone[cell % stone.length];
+      }
+      if (def.recovery && def.kind === 'cloud') {
+        const rgba = hex(color);
+        pix.px(col, surfaceRow + depth, [Math.round(rgba[0] * 0.85), Math.round(rgba[1] * 0.85), Math.round(rgba[2] * 0.93), 255]);
+      } else pix.px(col, surfaceRow + depth, color);
+    }
+  }
+  return { pix, x, bottom };
 }
 
 export class GameRenderer {
@@ -137,6 +189,8 @@ export class GameRenderer {
   private afterColor = 0;
   private wakeTimerStep = 0;
   private cloudReactions: { mesh: THREE.Mesh; age: number }[] = [];
+  private surfacePulses: SurfacePulse[] = [];
+  private terrainMeshes: { mesh: THREE.Mesh; def: TerrainDef }[] = [];
   private bubbles: Bubble[] = [];
   private anim: { name: AnimName; t: number } = { name: 'idle', t: 0 };
   private time = 0;
@@ -338,6 +392,34 @@ export class GameRenderer {
     this.player.renderOrder = ORDER.player;
     this.player.frustumCulled = false;
     this.scene.add(this.player);
+    // Three reusable terrain accents; pump chains never allocate a new mesh.
+    const pulse = new Pix(25, 7);
+    pulse.hline(1, 8, 4, ROLL_VISUAL.mint);
+    pulse.hline(16, 23, 4, ROLL_VISUAL.mint);
+    pulse.hline(3, 7, 3, ROLL_VISUAL.mintLight);
+    pulse.hline(17, 21, 3, ROLL_VISUAL.mintLight);
+    pulse.px(0, 5, ROLL_VISUAL.mint);
+    pulse.px(24, 5, ROLL_VISUAL.mint);
+    pulse.px(9, 2, ROLL_VISUAL.mint);
+    pulse.px(15, 2, ROLL_VISUAL.mint);
+    const pulseTexture = pulse.toTexture();
+    for (let i = 0; i < 3; i++) {
+      const mesh = this.sprite(pulseTexture, 'c', 0, 0, ORDER.platform + 0.6, true) as SurfacePulse['mesh'];
+      mesh.visible = false;
+      this.surfacePulses.push({ mesh, life: 0, duration: 0, strength: 0 });
+    }
+
+    for (const def of level.terrain ?? []) {
+      const first = def.knots[0].x;
+      const last = def.knots[def.knots.length - 1].x;
+      for (let x0 = first; x0 < last; x0 = Math.min(last, Math.floor(x0) + 128)) {
+        const x1 = Math.min(last, Math.floor(x0) + 128);
+        const tile = drawCurvedTerrain(def, x0, x1);
+        const texture = this.tex(`terrain:${level.id}:${def.id}:${x0}`, () => tile.pix);
+        const mesh = this.place(this.sprite(texture, 'bl', tile.x, tile.bottom, ORDER.platform, !!def.parade), x0, x1);
+        this.terrainMeshes.push({ mesh, def });
+      }
+    }
     for (let i = 0; i < 6; i++) {
       const mesh = new THREE.Mesh(
         this.geo(FRAME_W, FRAME_H, 'bc'),
@@ -400,13 +482,46 @@ export class GameRenderer {
   }
 
   // ── events → effects ────────────────────────────────────────────────
-  onEvents(events: readonly WorldEvent[], pres: Presentation): void {
+  onEvents(events: readonly (WorldEvent | SkyflowPresentationEvent)[], pres: Presentation): void {
     const P = this.particles;
     P.scale = pres.particles;
     const w = this.world;
     const poppy = this.character === 'poppy';
     for (const e of events) {
       switch (e.type) {
+        case 'curl':
+          P.emit('dust', e.x, e.y + 1, 2, -Math.sign(w.player.vx), 0);
+          break;
+        case 'uncurl':
+          // The shape change itself communicates uncurling; no extra burst.
+          break;
+        case 'launch':
+          P.emit(poppy ? 'spore' : 'droplet', e.x, e.y + 2, 2, -Math.sign(w.player.vx), 0.2);
+          break;
+        case 'pump': {
+          const perfect = e.quality === 'perfect';
+          P.emit('mint', e.x, e.y + 2, perfect ? 8 : 4, -Math.sign(w.player.vx), 0.3);
+          const slot = this.surfacePulses.reduce((a, b) => a.life < b.life ? a : b);
+          slot.duration = perfect ? 0.22 : 0.16;
+          slot.life = slot.duration;
+          slot.strength = (perfect ? 1 : 0.7) * (0.6 + pres.spectacle * 0.4);
+          slot.mesh.position.set(Math.round(e.x), Math.round(e.y - 1), 0);
+          slot.mesh.rotation.z = 0;
+          for (const terrain of w.level.terrain ?? []) {
+            const sample = sampleTerrain(terrain, e.x);
+            if (sample && Math.abs(sample.y - e.y) < 2) {
+              slot.mesh.rotation.z = Math.atan(sample.slope);
+              break;
+            }
+          }
+          for (const platform of w.level.platforms) {
+            if (platform.kind === 'cloud' && Math.abs(platform.top - e.y) < 1 && e.x >= platform.x0 && e.x <= platform.x1) {
+              const reaction = this.cloudReactions[platform.id];
+              if (reaction) reaction.age = 0;
+            }
+          }
+          break;
+        }
         case 'jump':
           P.emit('dust', e.x, e.y + 1, 5, 0, 1);
           P.emit(poppy ? 'spore' : 'droplet', e.x, e.y + 8, 3);
@@ -487,6 +602,7 @@ export class GameRenderer {
   clearTransient(): void {
     this.particles.clear();
     this.wakeTimerStep = 0;
+    for (const pulse of this.surfacePulses) { pulse.life = 0; pulse.mesh.visible = false; }
     for (const reaction of this.cloudReactions) if (reaction) { reaction.age = 99; reaction.mesh.scale.y = 1; }
     for (const b of this.bubbles) this.removeBubble(b);
     this.bubbles.length = 0;
@@ -549,7 +665,15 @@ export class GameRenderer {
     for (const reaction of this.cloudReactions) {
       if (!reaction) continue;
       reaction.age += dt;
-      reaction.mesh.scale.y = reaction.age < 0.16 ? 1 - Math.sin(reaction.age / 0.16 * Math.PI) * 0.055 : 1;
+      reaction.mesh.scale.y = reaction.age < 0.16 ? 1 - Math.sin(reaction.age / 0.16 * Math.PI) * 0.055 * pres.spectacle : 1;
+    }
+    for (const pulse of this.surfacePulses) {
+      pulse.life = Math.max(0, pulse.life - dt);
+      pulse.mesh.visible = pulse.life > 0;
+      if (!pulse.mesh.visible) continue;
+      const progress = 1 - pulse.life / pulse.duration;
+      pulse.mesh.scale.set(pulse.strength * (0.7 + progress * 0.6), 1, 1);
+      pulse.mesh.material.opacity = pulse.strength * Math.min(1, pulse.life / 0.045);
     }
 
     // Collectibles.
@@ -619,6 +743,11 @@ export class GameRenderer {
     }
     if (parade.state === 'active' && Math.abs(parade.t - 1.5) < dt) this.shake = Math.max(this.shake, 0.5 * pres.shake);
     const ba = parade.bridgeAlpha;
+    for (const { mesh, def } of this.terrainMeshes) {
+      if (!def.parade) continue;
+      (mesh.material as THREE.MeshBasicMaterial).opacity = ba;
+      if (ba <= 0) mesh.visible = false;
+    }
     for (const m of this.bridgeMeshes) {
       (m.material as THREE.MeshBasicMaterial).opacity = ba;
       if (ba <= 0) m.visible = false;
@@ -679,6 +808,8 @@ export class GameRenderer {
     const p = w.player;
     if (w.dead) return 'fail';
     if (w.complete) return p.grounded ? 'cheer' : 'fall';
+    const roll = chooseSkyflowAnim(readSkyflowVisual(p));
+    if (roll) return roll;
     if (p.dashing) return 'dash';
     if (!p.grounded) {
       if (p.sinceLand < 0.025 && p.vy > 0) return 'land';
@@ -698,6 +829,7 @@ export class GameRenderer {
   private updatePlayer(input: RenderInput, dt: number, bloom: number): void {
     const w = input.world;
     const p = w.player;
+    const visual = readSkyflowVisual(p);
     const m = this.player;
     m.visible = input.showPlayer && !(w.dead && w.deadTimer < 0.4);
     const name = this.chooseAnim(w);
@@ -712,7 +844,7 @@ export class GameRenderer {
     this.anim.t += dt * fps;
     const def = ANIMS[name];
     const idx = def.loop ? Math.floor(frameTime) % def.frames.length : Math.min(def.frames.length - 1, Math.floor(frameTime));
-    const frameName = def.frames[idx];
+    const frameName = skyflowFrame(name, visual, p.facing) ?? def.frames[idx];
     const tex = this.playerFrames.get(frameName) ?? null;
     (m.material as THREE.MeshBasicMaterial).map = tex;
     const x = Math.round(p.prevX + (p.x - p.prevX) * input.alpha);
@@ -721,7 +853,8 @@ export class GameRenderer {
     m.scale.x = p.facing;
 
     // Afterimages trail behind the live sprite.
-    const fast = Math.abs(p.vx) > p.cfg.runSpeed * 1.15;
+    const feedbackSpeed = visual.rolling && p.grounded ? visual.speed : Math.abs(p.vx);
+    const fast = feedbackSpeed > p.cfg.runSpeed * 1.15;
     const want = input.pres.afterimages && m.visible && (p.dashing || fast);
     this.afterTimer -= dt;
     if (want && this.afterTimer <= 0) {
@@ -736,15 +869,17 @@ export class GameRenderer {
     }
     for (const a of this.afterimages) {
       a.life -= dt;
-      a.mesh.visible = a.life > 0;
+      a.mesh.visible = a.life > 0 && input.pres.afterimages && m.visible;
       if (a.life > 0) a.mesh.material.uniforms.uAlpha.value = Math.min(0.75, (a.life / 0.24) * 0.9);
     }
 
     // Petal wake / spores at high Bloom while running.
     this.wakeTimerStep -= dt;
     if (m.visible && fast && this.wakeTimerStep <= 0) {
-      this.wakeTimerStep = 0.12 - Math.min(1, Math.abs(p.vx) / p.cfg.maxHorizontalSpeed) * 0.025 - bloom * 0.025;
-      this.particles.emit(this.character === 'poppy' ? 'wake' : 'droplet', p.x - p.facing * 6, p.y + 3, 1, -p.facing, 0.3);
+      this.wakeTimerStep = 0.12 - Math.min(1, feedbackSpeed / p.cfg.maxHorizontalSpeed) * 0.025 - bloom * 0.025;
+      const kind = visual.rolling && p.braking ? 'dust' : this.character === 'poppy' ? 'wake' : 'droplet';
+      const travel = Math.sign(p.vx) || p.facing;
+      this.particles.emit(kind, p.x - travel * 6, p.y + 2, 1, -travel, 0.3);
     }
   }
 

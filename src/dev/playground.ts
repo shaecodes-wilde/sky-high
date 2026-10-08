@@ -2,6 +2,7 @@ import { SIM_DT, SIM_HZ } from '../config/movement';
 import type { LevelData, PlatformDef, PointDef } from '../level/types';
 import { NO_INPUT, type InputFrame } from '../sim/Player';
 import type { World } from '../sim/World';
+import { sweepY } from '../sim/collision';
 
 export const PLAYGROUND_SECTIONS = [
   { name: '1 · Acceleration & braking', x: 30, y: 64, hint: 'Run, release, reverse. Earned speed should persist; intentional braking should stop you.' },
@@ -45,6 +46,13 @@ export const PLAYGROUND_LEVEL: LevelData = {
 
 /** Session-only tapes; no storage, progression or records. Input is recorded once per authoritative step. */
 export class PlaygroundSession {
+  constructor(
+    readonly sections: readonly { name: string; x: number; y: number; hint: string }[] = PLAYGROUND_SECTIONS,
+    readonly title = 'Movement playground',
+  ) {
+    if (!sections.length) throw new Error('A development level needs at least one section');
+  }
+
   section = 0;
   elapsed = 0;
   event = 'ready';
@@ -58,11 +66,9 @@ export class PlaygroundSession {
   private recordedPath: PointDef[] = [];
 
   reset(world: World, section = this.section): void {
-    this.section = Math.max(0, Math.min(PLAYGROUND_SECTIONS.length - 1, section));
+    this.section = Math.max(0, Math.min(this.sections.length - 1, section));
     world.resetAll();
-    const start = PLAYGROUND_SECTIONS[this.section];
-    world.player.reset(start.x, start.y);
-    world.player.grounded = true;
+    this.restoreSectionSpawn(world);
     this.elapsed = 0;
     this.event = 'ready';
     this.cursor = 0;
@@ -89,9 +95,15 @@ export class PlaygroundSession {
   }
 
   restoreSectionSpawn(world: World): void {
-    const start = PLAYGROUND_SECTIONS[this.section];
-    world.player.reset(start.x, start.y);
-    world.player.grounded = true;
+    const start = this.sections[this.section];
+    const player = world.player;
+    // Initial fixture placement only: the exact AABB support can be a
+    // fraction above a knot's centre height. A short real vertical sweep
+    // seats the feet without changing any in-flight route state.
+    player.reset(start.x, start.y + 1);
+    const contact = sweepY(world.solids, player, -2, 0);
+    player.grounded = contact.landed;
+    player.prevY = player.y;
   }
 
   input(live: InputFrame): InputFrame {
@@ -100,7 +112,9 @@ export class PlaygroundSession {
       return this.tape[this.cursor++];
     }
     if (this.recording) {
-      if (this.tape.length < SIM_HZ * 60) this.tape.push({ ...live });
+      if (this.tape.length < SIM_HZ * 60) this.tape.push({ ...live,
+        ...(live.directionEvents ? { directionEvents: live.directionEvents.map(edge => ({ ...edge })) } : {}),
+      });
       else this.recording = false;
     }
     return live;
@@ -117,10 +131,11 @@ export class PlaygroundSession {
   mount(world: () => World, resetView: () => void): { update: () => void; dispose: () => void } {
     const panel = document.createElement('aside');
     panel.className = 'movement-dev';
-    panel.setAttribute('aria-label', 'Developer movement playground');
+    panel.setAttribute('aria-label', `Developer ${this.title}`);
     panel.innerHTML = '<strong>Movement playground · DEV · no records</strong><select aria-label="Playground section"></select><p></p><div><button>Reset section</button><button>Record</button><button>Stop</button><button>Replay</button><label><input type="checkbox" checked> HUD</label></div><pre></pre><canvas width="360" height="95" aria-label="Trajectory: pink current, mint previous recording"></canvas>';
+    panel.querySelector('strong')!.textContent = `${this.title} · DEV · no records`;
     const select = panel.querySelector('select')!;
-    for (const [i, s] of PLAYGROUND_SECTIONS.entries()) select.add(new Option(s.name, String(i)));
+    for (const [i, s] of this.sections.entries()) select.add(new Option(s.name, String(i)));
     const actions = [() => this.reset(world(), Number(select.value)), () => this.record(world()), () => { this.recording = false; this.replaying = false; }, () => this.replay(world())];
     panel.querySelectorAll('button').forEach((button, i) => button.addEventListener('click', () => { actions[i](); resetView(); button.blur(); }));
     select.addEventListener('change', () => { this.reset(world(), Number(select.value)); resetView(); select.blur(); });
@@ -134,12 +149,12 @@ export class PlaygroundSession {
         if (performance.now() - lastUpdate < 100) return;
         lastUpdate = performance.now();
         select.value = String(this.section);
-        panel.querySelector('p')!.textContent = PLAYGROUND_SECTIONS[this.section].hint;
+        panel.querySelector('p')!.textContent = this.sections[this.section].hint;
         const p = world().player;
         pre.hidden = !(panel.querySelector('input') as HTMLInputElement).checked;
-        pre.textContent = `vx ${p.vx.toFixed(1)}  vy ${p.vy.toFixed(1)}  ${p.grounded ? 'grounded' : 'airborne'}\ndash ${p.dashCharges}  timer ${p.dashTimer.toFixed(3)}  coyote ${p.coyote.toFixed(3)}\njump buffer ${p.jumpBuffer.toFixed(3)}  dash buffer ${p.dashBuffer.toFixed(3)}\n${this.event} · ${SIM_HZ} Hz · segment ${this.elapsed.toFixed(2)}s\n${this.recording ? 'RECORDING' : this.replaying ? 'REPLAY' : 'live'} · ${this.tape.length} recorded steps`;
+        pre.textContent = `vx ${p.vx.toFixed(1)}  vy ${p.vy.toFixed(1)}  ${p.grounded ? 'grounded' : 'airborne'}\n${p.rolling ? 'CLOUD CURL' : 'standing'} · slope ${(p.surface?.slope ?? 0).toFixed(2)} · pump ${p.pumpResult}\ndash ${p.dashCharges}  timer ${p.dashTimer.toFixed(3)}  coyote ${p.coyote.toFixed(3)}\njump buffer ${p.jumpBuffer.toFixed(3)}  dash buffer ${p.dashBuffer.toFixed(3)}\n${this.event} · ${SIM_HZ} Hz · segment ${this.elapsed.toFixed(2)}s\n${this.recording ? 'RECORDING' : this.replaying ? 'REPLAY' : 'live'} · ${this.tape.length} recorded steps`;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const start = PLAYGROUND_SECTIONS[this.section];
+        const start = this.sections[this.section];
         for (const [path, color] of [[this.ghost, '#9ff0d0'], [this.trail, '#ff9fd0']] as const) {
           ctx.strokeStyle = color; ctx.beginPath();
           path.forEach((point, i) => { const x = (point.x - start.x) * 0.45; const y = 85 - (point.y - start.y) * 0.3; if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); });

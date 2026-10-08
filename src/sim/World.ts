@@ -2,6 +2,7 @@ import { SIM_DT, type MovementConfig } from '../config/movement';
 import type { LevelData, PointDef, RingDef, SplitGateDef } from '../level/types';
 import { Bloom } from './Bloom';
 import { boxesOverlap, type Solid } from './collision';
+import { terrainToSolid } from './terrain';
 import { Parade } from './Parade';
 import { Player, type InputFrame, type PlayerEvent, type WindZone } from './Player';
 
@@ -110,6 +111,16 @@ export class World {
       };
       this.solids.push(solid);
       if (p.parade) this.bridgeSolids.push(solid);
+    }
+    const terrainIds = new Set<number>();
+    for (const terrain of level.terrain ?? []) {
+      if (!Number.isFinite(terrain.id) || terrainIds.has(terrain.id)) {
+        throw new Error('Terrain definitions need unique finite IDs for pump traversal identity');
+      }
+      terrainIds.add(terrain.id);
+      const solid = terrainToSolid(terrain, this.solids.length);
+      this.solids.push(solid);
+      if (terrain.parade) this.bridgeSolids.push(solid);
     }
     level.springs.forEach((s, i) => {
       const solid: Solid = {

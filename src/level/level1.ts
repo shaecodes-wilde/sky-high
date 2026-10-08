@@ -336,7 +336,7 @@ export const LEVEL1: LevelData = {
   decor: b.decor,
   parade: { triggerX: PARADE_TRIGGER_X, flower: { x: 4560, y: 210 }, bridgeSolidAt: 2.4 },
   goal: { x0: 8500, x1: 8600, top: 196 },
-  sun: { x: 8760, y: 300 },
+  sun: { x: 8720, y: 300 },
   route: b.route,
   express: b.express,
 };

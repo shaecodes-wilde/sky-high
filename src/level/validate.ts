@@ -4,6 +4,24 @@ import type { InputFrame } from '../sim/Player';
 import { World } from '../sim/World';
 import type { LevelData, RouteLink, RouteMove } from './types';
 
+/**
+ * Rough time for the normal route at plain run speed with simple scripted
+ * jumps: ground distance between landings and takeoffs at run speed, plus
+ * measured air time per link. Not an expert time — a sanity estimate.
+ */
+export function estimateRouteTime(level: LevelData, cfg: MovementConfig, links: RouteLink[]): number {
+  let t = 0;
+  let x = level.start.x;
+  for (const link of links) {
+    const r = validateLink(level, cfg, link, 1, level.platforms[link.from].x0 > level.parade.triggerX);
+    if (!r.best) return Infinity;
+    t += Math.max(0, r.best.takeoffX - x) / cfg.runSpeed + r.best.airTime;
+    x = r.best.landX;
+  }
+  const g = level.goal;
+  return t + Math.max(0, (g.x0 + g.x1) / 2 - x) / cfg.runSpeed;
+}
+
 // Verifies route links by running the real controller in the real level
 // geometry with simple scripted inputs (hold right, jump at a takeoff point,
 // optional dashes at a few timings). A link passes if enough distinct
@@ -41,9 +59,18 @@ export interface LinkResult {
   ok: boolean;
   successes: number;
   tried: number;
+  /** The fastest successful outcome found (by air time). */
+  best: StrategyOutcome | null;
 }
 
-export function runStrategy(level: LevelData, cfg: MovementConfig, link: RouteLink, s: Strategy, paradeDone: boolean): boolean {
+export interface StrategyOutcome {
+  /** Seconds from takeoff to landing on the target. */
+  airTime: number;
+  takeoffX: number;
+  landX: number;
+}
+
+export function runStrategy(level: LevelData, cfg: MovementConfig, link: RouteLink, s: Strategy, paradeDone: boolean): StrategyOutcome | null {
   const from = level.platforms[link.from];
   const world = new World(level, cfg, 'timeTrial');
   world.parade.set(paradeDone);
@@ -81,16 +108,15 @@ export function runStrategy(level: LevelData, cfg: MovementConfig, link: RouteLi
     }
     if (!tookOff) input.jumpHeld = false;
     world.step(input);
-    if (world.dead || world.events.some((e) => e.type === 'death')) return false;
+    if (world.dead || world.events.some((e) => e.type === 'death')) return null;
     if (tookOff && airT > 0 && p.grounded) {
       const g = groundUnder(world.solids, p);
       if (!g) continue;
-      if (g.id === link.to) return true;
-      if (g.id !== link.from || airT > 0.2) return false;
+      if (g.id === link.to) return { airTime: airT, takeoffX: s.takeoffX, landX: p.x };
+      if (g.id !== link.from || airT > 0.2) return null;
     }
-    if (world.complete) return link.to === level.platforms.length - 1;
   }
-  return false;
+  return null;
 }
 
 function strategies(level: LevelData, link: RouteLink): Strategy[] {
@@ -127,15 +153,18 @@ export function validateLink(level: LevelData, cfg: MovementConfig, link: RouteL
   const strats = strategies(level, link);
   const okTakeoffs = new Set<number>();
   let tried = 0;
+  let best: StrategyOutcome | null = null;
   for (const s of strats) {
     if (okTakeoffs.has(s.takeoffX)) continue;
     tried++;
-    if (runStrategy(level, cfg, link, s, paradeDone)) {
+    const out = runStrategy(level, cfg, link, s, paradeDone);
+    if (out) {
       okTakeoffs.add(s.takeoffX);
+      if (!best || out.airTime < best.airTime) best = out;
       if (okTakeoffs.size >= needed) break;
     }
   }
-  return { link, ok: okTakeoffs.size >= needed, successes: okTakeoffs.size, tried };
+  return { link, ok: okTakeoffs.size >= needed, successes: okTakeoffs.size, tried, best };
 }
 
 /** Distance (px) between the parade trigger and the nearest revealed surface. */

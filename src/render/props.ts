@@ -82,43 +82,67 @@ export function drawCloud(w: number, recovery: boolean, seed: number): Pix {
 export function drawIsland(w: number, h: number, seed: number): Pix {
   const p = new Pix(w, h);
   const r = rng(seed * 104729 + w);
-  // Rock body with stones.
-  p.rect(0, 0, w, h, PAL.rock);
-  for (let y = 8; y < h; y += 6) {
-    let x = (y / 6) % 2 ? -4 : 0;
-    while (x < w) {
-      const sw = 7 + Math.floor(r() * 7);
-      p.hline(x + 1, x + sw - 1, y, PAL.rockL);
-      p.hline(x, x + sw - 1, y + 5, PAL.rockD);
-      p.px(x + sw - 1, y + 1, PAL.rockD);
-      p.px(x + sw - 1, y + 2, PAL.rockD);
-      p.px(x + sw - 1, y + 3, PAL.rockD);
-      p.px(x + sw - 1, y + 4, PAL.rockD);
-      if (r() < 0.25) p.px(x + 2 + Math.floor(r() * (sw - 3)), y + 2 + Math.floor(r() * 2), PAL.rockDD);
-      x += sw;
-    }
-  }
-  // Edge shading.
+  // Organic rock: jittered-grid Voronoi stones, lit from above, darkening with depth.
+  const cell = 13;
+  const gw = Math.ceil(w / cell) + 2;
+  const gh = Math.ceil(h / cell) + 2;
+  const pts: [number, number, number][] = [];
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) pts.push([(gx - 1 + 0.15 + r() * 0.7) * cell, (gy - 1 + 0.15 + r() * 0.7) * cell * 0.8, r()]);
+  const tones = [PAL.rockL, PAL.rock, PAL.rock, PAL.rockD];
   for (let y = 0; y < h; y++) {
-    p.px(0, y, PAL.rockD);
-    p.px(1, y, PAL.rockL);
-    p.px(w - 1, y, PAL.rockDD);
-    p.px(w - 2, y, PAL.rockD);
+    const gy = Math.floor(y / (cell * 0.8)) + 1;
+    for (let x = 0; x < w; x++) {
+      const gx = Math.floor(x / cell) + 1;
+      let d1 = 1e9;
+      let d2 = 1e9;
+      let best = 0;
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          const cx = gx + ox;
+          const cy = gy + oy;
+          if (cx < 0 || cy < 0 || cx >= gw || cy >= gh) continue;
+          const i = cy * gw + cx;
+          const [px, py] = pts[i];
+          const d = Math.hypot(x + 0.5 - px, (y + 0.5 - py) * 1.15);
+          if (d < d1) {
+            d2 = d1;
+            d1 = d;
+            best = i;
+          } else if (d < d2) d2 = d;
+        }
+      }
+      const depth = y / h;
+      if (d2 - d1 < 1.3) {
+        p.px(x, y, depth > 0.5 ? PAL.rockDD : PAL.rockD);
+        continue;
+      }
+      const [, py, v] = pts[best];
+      const lit = y + 0.5 < py - 2 ? 0 : y + 0.5 > py + 4 ? 2 : 1;
+      let t = Math.min(3, Math.floor(v * 1.6) + lit + (depth > 0.45 ? 1 : 0));
+      if ((x * 7 + y * 13) % 41 === 0) t = Math.min(3, t + 1);
+      p.px(x, y, tones[t]);
+    }
   }
   // Grass cap (row 0 = collider top) with tufts hanging over the rock face.
   p.rect(0, 0, w, 5, PAL.grass);
   p.hline(0, w - 1, 0, PAL.grassL);
   p.hline(0, w - 1, 1, PAL.grassL);
   for (let x = 0; x < w; x++) {
-    const hang = 5 + Math.floor(r() * 3) + (r() < 0.12 ? 3 : 0);
+    const hang = 5 + Math.floor(r() * 3) + (r() < 0.12 ? 4 : 0);
     for (let y = 4; y < hang; y++) p.px(x, y, y === hang - 1 ? PAL.grassDD : PAL.grassD);
     if (r() < 0.3) p.px(x, 2, PAL.grassL);
   }
-  // Hanging vines.
+  // Moss patches and hanging vines.
+  for (let i = 0; i < w / 30; i++) {
+    const mx = Math.floor(r() * w);
+    const my = 10 + Math.floor(r() * Math.min(60, h - 20));
+    p.ellipse(mx, my, 3 + r() * 4, 1.5 + r() * 1.5, PAL.moss, (x, y) => p.opaque(x, y));
+  }
   for (let i = 0; i < w / 40; i++) {
     const x = 4 + Math.floor(r() * (w - 8));
-    const len = 8 + Math.floor(r() * 18);
+    const len = 8 + Math.floor(r() * 22);
     for (let y = 6; y < 6 + len; y++) p.px(x + (Math.floor(y / 5) % 2), y, y % 4 === 0 ? PAL.grass : PAL.moss);
+    if (r() < 0.5) p.px(x + 1, 6 + len, PAL.petal);
   }
   // Fade into the lower mist.
   for (let y = Math.max(0, h - 40); y < h; y++) {
@@ -505,7 +529,7 @@ export function drawSun(awake: number): Pix {
     p.ellipse(c + 11, c, 3, 4, eye);
     p.px(c - 12, c - 2, '#ffffff');
     p.px(c + 10, c - 2, '#ffffff');
-    for (let x = -7; x <= 7; x++) p.px(c + x, c + 10 + Math.round((x * x) / 14), eye);
+    for (let x = -7; x <= 7; x++) p.px(c + x, c + 14 - Math.round((x * x) / 14), eye);
   }
   p.ellipse(c - 20, c + 8, 4, 2.5, '#ff9a8a');
   p.ellipse(c + 20, c + 8, 4, 2.5, '#ff9a8a');

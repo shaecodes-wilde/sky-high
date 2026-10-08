@@ -264,6 +264,8 @@ export class Game {
     const mode = this.settings.mode;
     const key = recordKey(LEVEL1.id, this.settings.assist);
     let result = { best: getRecord(this.store, key).bestTime, previousBest: getRecord(this.store, key).bestTime, newBest: false, bestSplits: getRecord(this.store, key).bestSplits };
+    // A legitimate full run passes every checkpoint; anything else is practice.
+    if (mode === 'timeTrial' && this.practice === null && w.splits.some((s) => s === null)) this.practice = 'skipped checkpoints';
     const clean = mode === 'timeTrial' && this.practice === null;
     if (clean) {
       const prevSplits = result.bestSplits;

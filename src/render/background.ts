@@ -69,11 +69,16 @@ void main() {
     col = mix(col, fanCol, step(b, amt) * 0.75);
   }
 
-  // Pollen sparkles drift in as Bloom rises.
-  vec2 cell = floor((px + vec2(uCam.x * 0.12, uCam.y * 0.06)) / 6.0);
+  // Pollen sparkles drift in as Bloom rises: single pixels, a few with a tiny cross.
+  vec2 sp = px + floor(vec2(uCam.x * 0.12, uCam.y * 0.06));
+  vec2 cell = floor(sp / 9.0);
+  vec2 local = sp - cell * 9.0;
+  vec2 at = floor(vec2(hash(cell + 1.3), hash(cell + 7.1)) * 7.0) + 1.0;
   float h = hash(cell);
   float tw = 0.5 + 0.5 * sin(uTime * 1.3 + h * 40.0);
-  if (h > 1.0 - 0.025 * uBloom * uSpectacle && tw > 0.55 && px.y > 60.0) col = mix(col, vec3(1.0, 0.98, 0.85), 0.8);
+  vec2 dd = abs(local - at);
+  bool spark = dd.x + dd.y < 0.5 || (h > 0.995 && dd.x + dd.y < 1.5 && min(dd.x, dd.y) < 0.5);
+  if (spark && h > 1.0 - 0.05 * uBloom * uSpectacle && tw > 0.45 && px.y > 60.0) col = mix(col, vec3(1.0, 0.98, 0.85), 0.85);
 
   col = mix(col, vec3(0.42, 0.36, 0.62), uDim);
   gl_FragColor = vec4(col, 1.0);
@@ -132,12 +137,16 @@ function farLayer(p: Pix): void {
     const cx = 100 + i * 200 + Math.floor(r() * 40);
     const w = 60 + Math.floor(r() * 50);
     const top = 70 + Math.floor(r() * 30);
-    p.ellipse(cx, top, w / 2, 8, body);
-    for (let y = top; y < top + 30; y++) {
-      const half = (w / 2) * (1 - (y - top) / 30);
-      p.hline(cx - half, cx + half, y, body);
+    p.ellipse(cx, top, w / 2, 7, body);
+    // Craggy underside that tapers to a few rocky points.
+    for (let x = Math.floor(cx - w / 2); x <= cx + w / 2; x++) {
+      const u = (x - cx) / (w / 2);
+      const depth = 30 * Math.pow(Math.max(0, 1 - u * u), 0.8) * (0.75 + 0.25 * Math.sin(x * 0.7 + i)) + (x % 7 === 0 ? 4 : 0);
+      for (let y = top; y < top + depth; y++) p.px(x, y, y > top + depth - 3 ? '#a796dc' : body);
     }
-    p.hline(cx - w / 2 + 3, cx + w / 2 - 3, top - 7, hi);
+    p.hline(cx - w / 2 + 3, cx + w / 2 - 3, top - 6, hi);
+    p.hline(cx - w / 2 + 6, cx + w / 2 - 6, top - 7, '#ddd2fa');
+    if (i % 2 === 1) for (let y = top; y < top + 46; y++) if (y % 3) p.px(cx + w / 4, y, '#e6f2ff');
     if (i % 2 === 0) {
       const tx = cx - 8;
       p.rect(tx, top - 28, 8, 22, body);
@@ -177,7 +186,7 @@ function nearLayer(p: Pix): void {
 
 export function createParallax(): ParallaxLayer[] {
   const defs: [number, number, (p: Pix) => void, number, number, number][] = [
-    [1024, 140, farLayer, 0.06, 0.03, 70],
+    [1024, 140, farLayer, 0.06, 0.03, 48],
     [1024, 90, midLayer, 0.22, 0.12, 0],
     [1024, 60, nearLayer, 0.5, 0.45, -40],
   ];
@@ -219,11 +228,13 @@ void main() {
     float amp = 2.0 + uLevel * 3.0;
     float yy = cy + floor(sin(p.x * 0.06 - uTime * 4.0 + fi * 2.1) * amp + 0.5);
     float seg = fract((p.x - uTime * 90.0 - fi * 37.0) / 46.0);
-    if (abs(p.y - yy) < 0.75 && seg < 0.55 + uLevel * 0.3) {
-      alpha = 0.85;
+    if (abs(p.y - yy) < 1.0 && seg < 0.55 + uLevel * 0.3) {
+      alpha = 0.9;
       if (seg > 0.45 + uLevel * 0.3) col = vec3(1.0, 1.0, 1.0);
     }
   }
+  // A faint dithered wash shows the stream's extent.
+  if (alpha == 0.0 && mod(p.x + p.y, 4.0) < 1.0 && mod(p.y, 2.0) < 1.0) alpha = 0.22;
   // Fade at the ends so ribbons read as a stream, not a wall.
   float edge = min(p.x, uSize.x - p.x);
   if (edge < 10.0 && mod(p.x + p.y, 2.0) < 1.0) alpha *= 0.0;

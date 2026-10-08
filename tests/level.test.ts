@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MOVEMENT } from '../src/config/movement';
 import { LEVEL1 } from '../src/level/level1';
-import { paradeLead, validateLink } from '../src/level/validate';
+import { estimateRouteTime, paradeLead, validateLink } from '../src/level/validate';
 
 describe('level 1 route reachability (measured with the real controller)', () => {
   for (const link of LEVEL1.route) {
@@ -23,6 +23,14 @@ describe('level 1 route reachability (measured with the real controller)', () =>
 });
 
 describe('level 1 structure', () => {
+  it('reports an estimated plain-speed route time (informational)', () => {
+    const main = LEVEL1.route.filter((l) => !l.note?.startsWith('recovery'));
+    const t = estimateRouteTime(LEVEL1, MOVEMENT, main);
+    console.log(`Estimated normal-route time at plain run speed: ${t.toFixed(1)} s`);
+    expect(t).toBeGreaterThan(30);
+    expect(t).toBeLessThan(200);
+  });
+
   it('reveals the petal bridge before a max-speed player can reach it', () => {
     const lead = paradeLead(LEVEL1);
     expect(lead).toBeGreaterThan(LEVEL1.parade.bridgeSolidAt * MOVEMENT.maxHorizontalSpeed);

@@ -1,0 +1,15 @@
+
+> cloudbloom@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.3 building client environment for production...
+transforming...
+✓ 37 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.64 kB │ gzip:   0.37 kB
+dist/assets/index-vVDo3wd4.css    6.41 kB │ gzip:   1.90 kB
+dist/assets/sheet-9nRSJRM1.js     0.60 kB │ gzip:   0.37 kB
+dist/assets/index-fRLAP62o.js   657.92 kB │ gzip: 177.20 kB
+
+✓ built in 363ms

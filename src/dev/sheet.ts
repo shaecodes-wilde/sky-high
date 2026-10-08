@@ -1,5 +1,5 @@
 import { ANIMS, FRAME_H, FRAME_NAMES, FRAME_W, type AnimName } from '../config/animation';
-import { buildCharacter, CHARACTER_INFO, type CharacterId } from '../render/characters';
+import { buildCharacter, buildRollPreview, CHARACTER_INFO, type CharacterId } from '../render/characters';
 import type { Pix } from '../render/pixel';
 
 // Dev-only `?sheet` page: the character review board.
@@ -99,6 +99,20 @@ export function showSheet(root: HTMLElement): void {
     const sheet = buildCharacter(id);
     const sec = el('section', 'margin-bottom:18px');
     sec.append(el('h3', 'margin:4px 0', `${CHARACTER_INFO[id].name} — ${CHARACTER_INFO[id].blurb}`));
+
+    // 0. Cloud Curl preview (`?sheet&curl`): rolled frames for the movement stream's mechanic.
+    if (qs.has('curl')) {
+      const curlRow = el('div', 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px');
+      for (const [name, pix] of buildRollPreview(id)) {
+        const cv = canvas(opts.zoom);
+        cv.style.background = '#cfc3f0';
+        drawFrame(cv, pix, opts.zoom, opts);
+        const cell = el('div', '');
+        cell.append(cv, el('div', '', name));
+        curlRow.append(cell);
+      }
+      sec.append(el('div', 'font-weight:bold', 'Cloud Curl (forward-compatible preview)'), curlRow);
+    }
 
     // 1. Every frame at zoom.
     const z = opts.zoom;

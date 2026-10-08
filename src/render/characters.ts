@@ -1030,15 +1030,141 @@ export interface CharacterSheet {
   frames: Map<string, Pix>;
 }
 
+// ── Cloud Curl (forward-compatible) ────────────────────────────────────────
+// The movement stream's Cloud Curl adds rolled frames named `<pose><phase>`
+// (roll, rollMedium, rollFast, rollPump, rollPerfect, rollBrake, rollJump,
+// rollLand × 16 phases) and curl0..3 transitions. They are drawn here in the
+// same production style whenever animation.ts asks for them; without that
+// config these functions are simply never called.
+
+const ROLL_POSES = ['rollMedium', 'rollFast', 'rollPump', 'rollPerfect', 'rollBrake', 'rollJump', 'rollLand', 'roll'] as const;
+type RollPose = (typeof ROLL_POSES)[number];
+const ROLL_PHASES = 16;
+const RCX = 11.5;
+const RCY = 22.5;
+
+/** Unrotated inner art of the ball (rotated per phase inside a fixed rim). */
+function rollInner(id: CharacterId, p: Pix): void {
+  if (id === 'poppy') {
+    // Cap shell over tucked knees, face peeking out, braid around the rim.
+    p.ellipse(RCX, RCY, 7.6, 7.6, PO.pants);
+    p.ellipse(RCX - 1, RCY + 2.5, 4.5, 3.2, PO.pantsS);
+    p.ellipse(RCX, RCY - 2.2, 7.6, 5.4, PO.cap, (_, y) => y <= RCY - 1);
+    p.hline(RCX - 6, RCX + 6, Math.round(RCY - 1), PO.gill);
+    for (const [sx, sy] of [[-4, -5], [1, -6], [4, -3], [-1, -3]] as Pt[]) p.rect(Math.round(RCX + sx), Math.round(RCY + sy), 2, 1, PO.spot);
+    p.ellipse(RCX + 3.2, RCY + 1.2, 2.6, 2.2, PO.skin);
+    p.px(Math.round(RCX + 4), Math.round(RCY + 0.5), PO.eye);
+    p.px(Math.round(RCX + 4), Math.round(RCY + 2), PO.blush);
+    for (let i = 0; i < 8; i++) {
+      const a = Math.PI * 0.85 + i * 0.22;
+      p.px(Math.round(RCX + Math.cos(a) * 6.8), Math.round(RCY + Math.sin(a) * 6.8), i === 6 ? PO.tie : i % 2 ? PO.hairD : PO.hair);
+    }
+    p.px(Math.round(RCX - 5), Math.round(RCY - 3), PO.petal);
+  } else {
+    // Wrapped in the duck ring: underwear, knees, moustache and monocle inside.
+    p.ellipse(RCX, RCY, 7.6, 7.6, SP.duck);
+    p.ellipse(RCX, RCY, 5.6, 5.6, SP.under);
+    p.ellipse(RCX + 1, RCY - 1, 3.6, 3.4, SP.skin);
+    p.hline(Math.round(RCX - 1), Math.round(RCX + 4), Math.round(RCY + 1), SP.stache);
+    p.px(Math.round(RCX - 2), Math.round(RCY), SP.stache);
+    p.px(Math.round(RCX + 5), Math.round(RCY), SP.stache);
+    p.ellipse(RCX + 2.5, RCY - 2, 1.4, 1.4, SP.monocle);
+    p.px(Math.round(RCX + 2.5), Math.round(RCY - 2), SP.eye);
+    p.rect(Math.round(RCX - 3), Math.round(RCY - 6), 6, 2, SP.hat);
+    p.hline(Math.round(RCX - 3), Math.round(RCX + 2), Math.round(RCY - 4), SP.band);
+    p.hline(Math.round(RCX - 6), Math.round(RCX - 3), Math.round(RCY + 5), SP.duckS);
+  }
+}
+
+function rollFrame(id: CharacterId, pose: RollPose, phase: number): Pix {
+  const src = new Pix(FRAME_W, FRAME_H);
+  rollInner(id, src);
+  const out = new Pix(FRAME_W, FRAME_H);
+  const a = (phase / ROLL_PHASES) * Math.PI * 2;
+  const c = Math.cos(a);
+  const sn = Math.sin(a);
+  // A fixed rim keeps the footprint steady while the identity spins inside.
+  out.ellipse(RCX, RCY, 8.5, 8.5, id === 'poppy' ? PO.capLo : SP.duckS);
+  for (let y = 13; y <= 31; y++) {
+    for (let x = 2; x <= 21; x++) {
+      const dx = x + 0.5 - RCX - 0.5;
+      const dy = y + 0.5 - RCY - 0.5;
+      if (dx * dx + dy * dy > 7.7 * 7.7) continue;
+      const col = src.get(Math.round(RCX + dx * c + dy * sn), Math.round(RCY - dx * sn + dy * c));
+      if (col) out.px(x, y, col);
+    }
+  }
+  // Sir Puddlewick's duck stays upright at the front, unbothered by physics.
+  if (id === 'puddlewick') {
+    out.ellipse(19.5, 19.5, 2.4, 2.2, SP.duck);
+    out.px(19, 19, SP.eye);
+    out.rect(21, 20, 2, 1, SP.beak);
+  }
+  out.outline(OUT);
+  const squash = pose === 'rollPump' ? 0.17 : pose === 'rollLand' ? 0.12 : pose === 'rollBrake' ? 0.07 : 0;
+  const stretch = pose === 'rollJump' ? 0.06 : pose === 'rollPerfect' ? 0.03 : 0;
+  const res = warpFeet(out, 1 + squash * 0.4 - stretch * 0.4, 1 - squash + stretch);
+  if (pose === 'rollPump' || pose === 'rollPerfect') {
+    // A success mark that needs no particles or sound.
+    const y = 12 + Math.round(squash * 18);
+    res.hline(7, 11, y, ACCENT.mint);
+    res.px(12, y - 1, ACCENT.mintHi);
+    if (pose === 'rollPerfect') res.px(14, 13, ACCENT.mintHi);
+  }
+  if (pose === 'rollFast') {
+    // Two carved speed gouges on the trailing side.
+    res.hline(0, 2, 20, PAPER.cream);
+    res.hline(1, 3, 25, PAPER.cream);
+  }
+  return res;
+}
+
+/** Resamples a frame about its feet (row 31); never touches the collider. */
+function warpFeet(src: Pix, sx: number, sy: number): Pix {
+  const out = new Pix(FRAME_W, FRAME_H);
+  for (let y = 0; y < FRAME_H; y++) {
+    for (let x = 0; x < FRAME_W; x++) {
+      const col = src.get(Math.round(RCX + (x - RCX) / sx), Math.round(31 + (y - 31) / sy));
+      if (col) out.px(x, y, col);
+    }
+  }
+  return out;
+}
+
+function curlFrame(id: CharacterId, index: number): Pix {
+  const t = (index + 1) / 4;
+  const poses = id === 'poppy' ? POPPY : PUDDLE;
+  const p = new Pix(FRAME_W, FRAME_H);
+  (id === 'poppy' ? drawPoppy : drawPuddlewick)(p, poses.land ?? BASE);
+  return warpFeet(p, 1 + t * 0.12, 1 - t * 0.34);
+}
+
 export function buildCharacter(id: CharacterId): CharacterSheet {
   const frames = new Map<string, Pix>();
   const poses = id === 'poppy' ? POPPY : PUDDLE;
-  for (const name of FRAME_NAMES) {
+  for (const name of FRAME_NAMES as readonly string[]) {
+    const roll = ROLL_POSES.find((k) => name.startsWith(k) && /^\d+$/.test(name.slice(k.length)));
+    if (roll) {
+      frames.set(name, rollFrame(id, roll, Number(name.slice(roll.length))));
+      continue;
+    }
+    if (/^curl\d$/.test(name)) {
+      frames.set(name, curlFrame(id, Number(name.slice(4))));
+      continue;
+    }
     const p = new Pix(FRAME_W, FRAME_H);
     (id === 'poppy' ? drawPoppy : drawPuddlewick)(p, poses[name] ?? BASE);
     frames.set(name, p);
   }
   return { id, frames };
+}
+
+/** Dev/preview: the Cloud Curl frames for one character, even before the mechanic lands. */
+export function buildRollPreview(id: CharacterId): Map<string, Pix> {
+  const m = new Map<string, Pix>();
+  for (let i = 0; i < 4; i++) m.set(`curl${i}`, curlFrame(id, i));
+  for (const k of ROLL_POSES) for (const ph of [0, 4, 8, 12]) m.set(`${k}${ph}`, rollFrame(id, k, ph));
+  return m;
 }
 
 export const CHARACTER_INFO: Record<CharacterId, { name: string; blurb: string; line: string }> = {

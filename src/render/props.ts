@@ -1396,3 +1396,54 @@ function outlineExceptTop(p: Pix, c: string): void {
 function px(p: Pix, x: number, y: number, c: string | null): void {
   p.px(x, y, c === null ? null : C(c));
 }
+
+// ── Curved terrain material (forward-compatible seam) ────────────────────
+/**
+ * Colour for one pixel of authored curved ground, in the same material
+ * language as drawIsland / drawCloud. The movement stream's curved-terrain
+ * rasteriser can call this per pixel instead of the legacy PAL ramp:
+ *
+ * - `depth`: rows below the surface at this column (0 = the standable lip row)
+ * - `columnDepth`: total painted rows in this column
+ * - `worldX`, `worldY`: world coordinates of the pixel (y-up)
+ *
+ * Returns null where the material dissolves (transparent mist dither).
+ */
+export function terrainMaterial(kind: 'island' | 'cloud', depth: number, columnDepth: number, worldX: number, worldY: number, seed = 0, recovery = false): string | null {
+  const x = Math.floor(worldX);
+  const y = Math.floor(worldY);
+  if (kind === 'cloud') {
+    // Flat cream lip, a warm shade line, then the carved lilac belly.
+    let c: string;
+    if (depth < 2) c = depth === 0 ? PAPER.cream : PAPER.white;
+    else if (depth < 4) c = depth === 2 ? PAPER.cream : PAPER.warm;
+    else {
+      const t = (depth - 4) / Math.max(1, columnDepth - 4);
+      c = t < 0.3 ? CLOUD.hi : t < 0.6 ? CLOUD.light : t < 0.85 ? CLOUD.mid : CLOUD.low;
+      // Carved concentric gouges: arcs of groove that echo the curl motif.
+      const r = Math.hypot(((x + seed * 13) % 18) - 9, (depth - 9) * 1.4);
+      if (depth > 5 && Math.abs(r - 5) < 0.5) c = CLOUD.groove;
+    }
+    if (depth >= columnDepth - 1) c = INK.line;
+    if (recovery && depth >= 2) c = c === CLOUD.hi ? CLOUD.light : c === CLOUD.light ? CLOUD.mid : c;
+    return c;
+  }
+  // Moored earth: meadow lip, tufted fringe, printed strata, then mist.
+  if (depth < 2) return EARTH.meadowHi;
+  if (depth < 4) return EARTH.meadow;
+  const fringe = 6 + (((x * 7 + seed * 3) >>> 0) % 4);
+  if (depth < fringe) return depth === fringe - 1 ? EARTH.meadowLow : EARTH.meadowMid;
+  const toBottom = columnDepth - depth;
+  if (toBottom < 16) {
+    // Dissolve into the cloud sea with an ordered dither.
+    const keep = toBottom / 16;
+    const b = ((x & 3) * 4 + (y & 3)) / 16;
+    if (b > keep) return (x + y) % 2 ? CLOUD.mid : null;
+  }
+  // Strata follow world height, so slopes cut through them like real bedding.
+  const band = Math.floor((y + seed * 5) / 7);
+  const inBand = ((y + seed * 5) % 7 + 7) % 7;
+  if (inBand === 0) return EARTH.stoneLow;
+  const tones = [EARTH.stone, EARTH.stoneMid, EARTH.stone, EARTH.stoneHi];
+  return tones[((band % 4) + 4) % 4];
+}

@@ -286,7 +286,7 @@ export class GameRenderer {
     for (const r of level.rings) this.ringMeshes.push(this.place(this.sprite(this.ringTex.armed[0], 'c', r.x, r.y, ORDER.ring), r.x - 10, r.x + 10));
 
     for (const wz of level.winds) {
-      const m = createWindMesh(wz.w, wz.h);
+      const m = createWindMesh(wz.w, wz.h, wz.dir);
       m.position.set(wz.x, wz.y, 0);
       m.renderOrder = ORDER.wind;
       m.frustumCulled = false;
@@ -542,6 +542,7 @@ export class GameRenderer {
     const bloom = w.bloom.visual;
     const paradeI = parade.intensity;
     this.particles.scale = pres.particles;
+    const sig = this.signals.update(w, dt);
 
     // Camera (integer pixels; shake is cosmetic and optional).
     let cx = Math.round(camera.prevX + (camera.x - camera.prevX) * alpha);
@@ -567,6 +568,10 @@ export class GameRenderer {
     u.uDim.value = parade.anticipation * 0.12 * pres.spectacle;
     u.uFlower.value.set(this.level.parade.flower.x - cx + VIEW_W / 2, this.level.parade.flower.y - cy + VIEW_H / 2);
     u.uCam.value.set(cx, cy);
+    // Flow energy and mood are shared with the parallax strips (same uniform objects).
+    if (u.uEnergy) u.uEnergy.value = sig.energy * pres.spectacle;
+    if (u.uMood) u.uMood.value = sig.mood;
+    if (u.uReveal) u.uReveal.value = sig.parade.reveal;
     placeParallax(this.layers, cx, cy, 160);
 
     // Cull by x.
@@ -668,7 +673,6 @@ export class GameRenderer {
     for (const m of this.npcMeshes) (m.material as THREE.MeshBasicMaterial).map = this.npcFrames.get(npcFrame) ?? null;
 
     // Player.
-    const sig = this.signals.update(w, dt);
     this.updatePlayer(input, dt, bloom, sig);
 
     // Bubbles.

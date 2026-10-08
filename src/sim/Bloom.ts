@@ -15,6 +15,9 @@ export const BLOOM_CONFIG = {
     [0.7, 0.58],
   ] as [number, number][],
   visualRate: 0.9, // smoothing of the displayed value (1/s)
+  /** Speed and event bonuses only count near the furthest point reached, so
+   *  dashing or bouncing in place cannot charge Bloom. */
+  frontierSlack: 80,
 };
 
 export type BloomEvent = keyof typeof BLOOM_CONFIG.events;
@@ -46,14 +49,15 @@ export class Bloom {
       if (vx >= runSpeed * c.progressMinSpeed) v += (x - this.maxX) * c.progressGain;
       this.maxX = x;
     }
-    if (speed > runSpeed * 1.05) v += c.sustainGain * dt;
+    if (speed > runSpeed * 1.05 && vx > 0 && x >= this.maxX - c.frontierSlack) v += c.sustainGain * dt;
     v -= (speed < runSpeed * 0.5 ? c.idleDecay : c.cruiseDecay) * dt;
     this.value = Math.min(1, Math.max(0, v));
     this.updateTier();
     this.visual += (this.value - this.visual) * (1 - Math.exp(-c.visualRate * dt));
   }
 
-  add(e: BloomEvent): void {
+  add(e: BloomEvent, x: number): void {
+    if (e !== 'fragment' && x < this.maxX - BLOOM_CONFIG.frontierSlack) return;
     this.value = Math.min(1, this.value + BLOOM_CONFIG.events[e]);
     this.updateTier();
   }

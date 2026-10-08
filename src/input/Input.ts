@@ -26,6 +26,8 @@ export class Input {
 
   private queue: QueuedEvent[] = [];
   private held = new Set<string>();
+  /** Key state as of the queue position being processed (events may batch between steps). */
+  private procHeld = new Set<string>();
   private dirOrder: Dir[] = [];
   private jumpHeld = false;
   private tap: { dir: Dir; t: number; released: boolean } | null = null;
@@ -93,6 +95,7 @@ export class Input {
   reset(): void {
     this.queue.length = 0;
     this.held.clear();
+    this.procHeld.clear();
     this.dirOrder.length = 0;
     this.jumpHeld = false;
     this.tap = null;
@@ -112,7 +115,7 @@ export class Input {
 
   private dirHeld(dir: Dir): boolean {
     const codes = this.bindings[dir < 0 ? 'left' : 'right'];
-    return codes.some((c) => this.held.has(c));
+    return codes.some((c) => this.procHeld.has(c));
   }
 
   /**
@@ -125,10 +128,12 @@ export class Input {
     // Expire a stale first tap.
     if (this.tap && now - this.tap.t > this.doubleTapMs) this.tap = null;
     for (const ev of this.queue) {
+      if (ev.down) this.procHeld.add(ev.code);
+      else this.procHeld.delete(ev.code);
       if (ev.action === 'left' || ev.action === 'right') {
         const dir: Dir = ev.action === 'left' ? -1 : 1;
         // Direction state counts as one input even with two keys bound.
-        const otherKeysHeld = this.bindings[ev.action].some((c) => c !== ev.code && this.held.has(c));
+        const otherKeysHeld = this.bindings[ev.action].some((c) => c !== ev.code && this.procHeld.has(c));
         if (ev.down) {
           this.dirOrder = this.dirOrder.filter((d) => d !== dir);
           this.dirOrder.push(dir);
@@ -152,7 +157,7 @@ export class Input {
         if (ev.down) {
           jumpPressed = true;
           this.jumpHeld = true;
-        } else if (!this.bindings.jump.some((c) => this.held.has(c))) {
+        } else if (!this.bindings.jump.some((c) => this.procHeld.has(c))) {
           this.jumpHeld = false;
         }
       } else if (ev.action === 'dash' && ev.down) {

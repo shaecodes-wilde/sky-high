@@ -213,9 +213,9 @@ export class World {
       this.events.push(e);
       if (e.type === 'spring') {
         this.springs[e.spring].since = 0;
-        this.bloom.add('spring');
+        this.bloom.add('spring', p.x);
       } else if (e.type === 'dashEnd') this.lastDashEnd = 0;
-      else if (e.type === 'land' && this.lastDashEnd < 0.35 && e.speed > p.cfg.runSpeed) this.bloom.add('dashLand');
+      else if (e.type === 'land' && this.lastDashEnd < 0.35 && e.speed > p.cfg.runSpeed) this.bloom.add('dashLand', p.x);
     }
     this.lastDashEnd += dt;
     this.bloom.step(dt, p.x, p.vx, p.cfg.runSpeed);
@@ -233,7 +233,7 @@ export class World {
         r.armed = false;
         r.cooldown = RING_REARM;
         r.flash = 0;
-        this.bloom.add('ring');
+        this.bloom.add('ring', p.x);
         this.events.push({ type: 'ring', index: i, x: r.def.x, y: r.def.y });
       }
       if (!r.armed) {
@@ -251,13 +251,13 @@ export class World {
       this.seedsTaken[i] = true;
       this.seedChain++;
       this.seedChainTimer = 0.7;
-      this.bloom.add('seedChain');
+      this.bloom.add('seedChain', p.x);
       this.events.push({ type: 'seed', index: i, x: s.x, y: s.y, chain: this.seedChain });
     });
     this.level.fragments.forEach((f, i) => {
       if (this.fragmentsTaken[i] || !circleBox(f.x, f.y, FRAGMENT_RADIUS, left, bottom, p.w, p.h)) return;
       this.fragmentsTaken[i] = true;
-      this.bloom.add('fragment');
+      this.bloom.add('fragment', p.x);
       this.events.push({ type: 'fragment', index: i, x: f.x, y: f.y });
     });
     this.level.keepsakes.forEach((k, i) => {

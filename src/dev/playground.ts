@@ -88,6 +88,12 @@ export class PlaygroundSession {
     return true;
   }
 
+  restoreSectionSpawn(world: World): void {
+    const start = PLAYGROUND_SECTIONS[this.section];
+    world.player.reset(start.x, start.y);
+    world.player.grounded = true;
+  }
+
   input(live: InputFrame): InputFrame {
     if (this.replaying) {
       if (this.cursor >= this.tape.length) { this.replaying = false; return NO_INPUT; }

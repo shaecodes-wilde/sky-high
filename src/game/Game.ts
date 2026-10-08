@@ -213,6 +213,7 @@ export class Game {
     if (this.world.complete) return;
     if (this.settings.mode === 'timeTrial' && !this.practice) this.markPractice('checkpoint retry');
     this.world.respawn();
+    this.playground?.restoreSectionSpawn(this.world);
     this.handleEvents(this.world.events);
     this.camera.snapTo(this.world.player.x, this.world.player.y, 1);
     this.input.reset();
@@ -378,6 +379,7 @@ export class Game {
     const p = w.player;
     const input = this.state === 'playing' ? this.input.sample(!p.grounded, p.facing, performance.now()) : { move: 0 as const, jumpHeld: false, jumpPressed: false, dash: 0 as const };
     w.step(this.playground && this.state === 'playing' ? this.playground.input(input) : input);
+    if (this.playground && w.events.some((e) => e.type === 'respawn')) this.playground.restoreSectionSpawn(w);
     if (this.state === 'playing') this.playground?.afterStep(w);
     this.camera.step(SIM_DT, p.x, p.y, p.vx, p.facing, p.grounded, p.vy);
     this.handleEvents(w.events);
@@ -452,7 +454,7 @@ export class Game {
           break;
         case 'respawn':
           A.play('respawn');
-          this.camera.snapTo(e.x, e.y, 1);
+          this.camera.snapTo(this.world.player.x, this.world.player.y, 1);
           break;
         case 'paradeStart':
           A.play('parade');

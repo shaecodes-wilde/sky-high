@@ -410,7 +410,18 @@ export function moveGrounded(solids: readonly Solid[], b: Body, dx: number, spee
       step *= 0.5;
       next = continuedSupport(solids, bodyAt(b, b.x + step), contact);
     }
-    if (!next) return leaveSurface(solids, b, remaining, contact);
+    if (!next) {
+      // Resolve the exact final support point before departing. A spatial
+      // substep can straddle a curve endpoint; leaving from its earlier
+      // interior tangent would sweep back into the still-overlapping curve.
+      const exitX = step > 0 ? contact.solid.x + contact.solid.w + b.w / 2 : contact.solid.x - b.w / 2;
+      const toExit = exitX - b.x;
+      if (Math.sign(toExit) === Math.sign(step) && Math.abs(toExit) <= Math.abs(step) && Math.abs(toExit) > 1e-12) {
+        step = toExit;
+        next = continuedSupport(solids, bodyAt(b, exitX), contact);
+      }
+      if (!next) return leaveSurface(solids, b, remaining, contact);
+    }
     if (blocked(solids, b.x + step, next.y, b.w, b.h)) {
       // Locate the actual contact boundary rather than resetting/snapping.
       let low = 0;

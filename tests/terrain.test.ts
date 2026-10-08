@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TerrainDef } from '../src/level/types';
+import { LEVEL1 } from '../src/level/level1';
+import { SKYFLOW_LEVEL } from '../src/level/skyflowLaboratory';
 import { blocked, groundUnder, moveGrounded, surfaceContact, sweepAir, sweepX, sweepY, type Body, type Solid } from '../src/sim/collision';
 import { sampleTerrain, terrainAboveIntervals, terrainSupport, terrainToSolid, terrainValleys } from '../src/sim/terrain';
 import { box, makePlayer } from './helpers';
@@ -185,6 +187,41 @@ describe('curve collision and feet anchoring', () => {
 });
 
 describe('grounded connectivity and physical launches', () => {
+  it.each([
+    ['Laboratory Sunthread', SKYFLOW_LEVEL.terrain!.find(t => t.id === 1003)!, 2682.5115361173794, 283.93655467389164, 4.74],
+    ['Level 1 curved rejoin', LEVEL1.terrain!.find(t => t.id === 1101)!, 4592.043973657692, 300, 4.2],
+  ] as const)('leaves the actual %s endpoint without a false wall or lost travel', (_name, def, x, speed, dx) => {
+    const solid = terrainToSolid(def);
+    const b = on(solid, x, 10, 12);
+    const end = def.knots.at(-1)!;
+    const exitX = end.x + b.w / 2;
+    const result = moveGrounded([solid], b, dx, speed, 1250, true);
+    expect(result.hit).toBeNull();
+    expect(result.separated).toBe(true);
+    expect(result.contact!.x).toBe(end.x);
+    expect(b.x).toBeCloseTo(x + dx, 8);
+    expect(b.y).toBeCloseTo(end.y + (b.x - exitX) * end.slope, 8);
+  });
+
+  it.each([-1, 1] as const)('leaves a concave endpoint in direction %s at every supported route entry speed', dir => {
+    const def: TerrainDef = {
+      id: 2450, kind: 'cloud', bottom: -10,
+      knots: dir > 0 ? [{ x: 0, y: 30, slope: -0.6 }, { x: 100, y: 0, slope: 0 }] : [{ x: 0, y: 0, slope: 0 }, { x: 100, y: 30, slope: 0.6 }],
+    };
+    const solid = terrainToSolid(def);
+    for (const speed of [132, 180, 225, 260, 300]) {
+      const x = dir > 0 ? 104.6 : -4.6;
+      const b = on(solid, x, 10, 12);
+      const dx = dir * speed / 60;
+      const result = moveGrounded([solid], b, dx, dir * speed, 1250, true);
+      expect(result.hit).toBeNull();
+      expect(result.separated).toBe(true);
+      expect(result.contact!.slope).toBeCloseTo(0, 10);
+      expect(b.x).toBeCloseTo(x + dx, 8);
+      expect(b.y).toBeCloseTo(0, 10);
+    }
+  });
+
   it('traverses flat-to-curve geometry with the actual Player dimensions getters', () => {
     const incline = terrainToSolid(ramp());
     const left = box(-100, -60, 100, 60);

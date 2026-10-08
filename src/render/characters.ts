@@ -298,7 +298,7 @@ const POPPY: Record<string, Pose> = {
     feet: [F(9, 28, 'flat', [11, 25]), F(17, 28, 'up')],
     hands: [[-4, -1], [4, -3]],
     tilt: 1,
-    hatX: 1,
+    hatX: 2,
     braid: [-30, -55],
     braidFront: true,
     eyes: 'wide',
@@ -396,7 +396,7 @@ function drawPoppy(p: Pix, q: Pose): void {
 
   inked(p, (l) => poppyArm(l, shoulders[1], q.hands[1], false), (_x, y) => y !== Math.round(shoulders[1][1]) - 2, POPPY_ARM_SEL);
   if (q.braidFront) inked(p, (l) => poppyBraid(l, q, hox, hoy), (_x, y) => y > hoy + 5, POPPY_SEL);
-  poppyCap(p, q, 12 + tx + q.hx + q.hatX, hoy - q.hat);
+  poppyCap(p, q, 12 + tx + q.hx + q.hatX, Math.max(q.squash < 0 ? 8 : 7, hoy - q.hat)); // cap top stays in frame
   if (q.stars) {
     const top = hoy - q.hat - 7;
     star(p, hox - 1, top + 1, ACCENT.gold, ACCENT.goldHi);
@@ -532,8 +532,8 @@ function poppyBraid(p: Pix, q: Pose, hox: number, hoy: number): void {
   for (let i = 0; i <= n; i++) {
     const t = i / n;
     const a = ((q.braid[0] + (q.braid[1] - q.braid[0]) * t) * Math.PI) / 180;
-    const px = Math.round(x - 0.5);
-    const py = Math.round(y - 0.5);
+    const px = Math.max(1, Math.round(x - 0.5)); // bunch up at the frame edge rather than clip
+    const py = Math.max(1, Math.round(y - 0.5));
     if (i < 7) {
       p.rect(px, py, 2, 2, PO.hair);
       // Plait: alternate a dark lower-right crossing each step.
@@ -629,8 +629,8 @@ const SP = {
   monocle: ACCENT.gold,
   monocleS: ACCENT.goldLo,
   lens: ACCENT.mintHi,
-  stache: '#7d4b2e',
-  stacheL: '#ad6d40',
+  stache: '#5a3322',
+  stacheL: '#8a5534',
   under: PAPER.white,
   underS: '#dccfe9',
   underD: '#b5a4d2',
@@ -700,7 +700,7 @@ const PUDDLE: Record<string, Pose> = {
     lean: 2,
     hx: 1,
     feet: [F(4, 27, 'flat', [7, 26]), F(16, 28, 'flat', [17, 25])],
-    hands: [[-3, -4], [7, -1]],
+    hands: [[-3, -4], [5, -1]],
     tilt: -1,
     hatX: -1,
     ring: 0,
@@ -728,17 +728,16 @@ const PUDDLE: Record<string, Pose> = {
     stars: true,
   }),
   cheer0: pose({ hands: [[-4, -9], [5, -1]], hat: 2, hatX: -5, tilt: -1, stache: 'up', brow: 'up', eyes: 'happy', mouth: 'smile' }),
-  cheer1: pose({ b: -1, feet: [F(10, 26, 'point'), F(13, 26, 'point')], hands: [[-5, -8], [5, 0]], hat: 2, hatX: -6, tilt: -2, ring: 1, stache: 'up', brow: 'up', eyes: 'happy', mouth: 'grin' }),
+  cheer1: pose({ b: -1, feet: [F(10, 26, 'point'), F(13, 26, 'point')], hands: [[-5, -8], [5, 0]], hat: 2, hatX: -5, tilt: -2, ring: 1, stache: 'up', brow: 'up', eyes: 'happy', mouth: 'grin' }),
 };
 
-// Head under the hat: 10×7, origin = left of row 9 (row 0 hides under the
+// Head under the hat: 10×6, origin = left of row 9 (row 0 hides under the
 // brim). s/S skin, w crown shine, f/F silver fringe. Light from upper-left,
 // so the face stays clean and only the jaw carries shadow.
 const PUDDLE_HEAD = [
   '..ssssss..',
   '.swwsssss.',
   'ffssssssss',
-  'fFsSssssss',
   'fFsSssssss',
   '.Fssssssss',
   '..SSSSsSS.',
@@ -763,7 +762,7 @@ function drawPuddlewick(p: Pix, q: Pose): void {
   const hox = 8 + tx + q.hx;
   const hoy = 9 + by + q.hy;
   const sy = 16 + by;
-  const hipY = 25 + by + q.hipY;
+  const hipY = 26 + by + q.hipY;
   const hips: [Pt, Pt] = [
     [10 + tx * 0.5, hipY],
     [13 + tx * 0.5, hipY],
@@ -773,21 +772,20 @@ function drawPuddlewick(p: Pix, q: Pose): void {
     [14 + tx, sy + 1],
   ];
   const cx = 11.5 + tx * 0.5;
-  const cy = 20 + by + q.ring;
+  const cy = 21 + by + q.ring;
   const belowHip = (_x: number, y: number): boolean => y > hipY;
 
   inked(p, (l) => puddleArm(l, shoulders[0], q.hands[0], true));
   inked(p, (l) => puddleLeg(l, hips[0], q.feet[0], true), belowHip);
   floatieBack(p, cx, cy, q);
 
-  // Chest: lean and dignified, a wisp of silver chest hair.
-  for (let y = sy; y <= hipY - 4; y++) {
+  // Chest: lean and dignified, lit from the upper left.
+  for (let y = sy - 1; y <= hipY - 4; y++) {
     for (let x = 9 + tx; x <= 14 + tx; x++) {
-      if (y === sy && (x === 9 + tx || x === 14 + tx)) continue;
+      if (y === sy - 1 && (x < 10 + tx || x > 13 + tx)) continue;
       p.px(x, y, x >= 13 + tx ? SP.skinS : SP.skin);
     }
   }
-  p.px(11 + tx, sy + 1, SP.fringeS);
   // Plain, opaque, entirely respectable white underwear.
   for (let y = hipY - 3; y <= hipY; y++) {
     for (let x = Math.round(9 + tx * 0.5); x <= Math.round(14 + tx * 0.5); x++) {
@@ -799,11 +797,11 @@ function drawPuddlewick(p: Pix, q: Pose): void {
 
   // The floatie, then the duck's head rising from its prow.
   inked(p, (l) => floatieFront(l, cx, cy, q));
-  inked(p, (l) => duckHead(l, Math.round(cx + 5), Math.round(cy) - 5, q));
+  inked(p, (l) => duckHead(l, Math.min(17, Math.round(cx + 5.5)), Math.round(cy) - 4, q));
 
-  inked(p, (l) => puddleHead(l, q, hox, hoy, sy), (_x, y) => y < hoy + 7);
+  inked(p, (l) => puddleHead(l, q, hox, hoy, sy));
   inked(p, (l) => puddleArm(l, shoulders[1], q.hands[1], false), undefined, PUDDLE_ARM_SEL);
-  topHat(p, q, hox + 4 + q.hatX, hoy - q.hat);
+  topHat(p, q, hox + 4 + q.hatX, Math.max(7, hoy - q.hat)); // keep the crown's top contour in frame
   if (q.monocle === 'pop') {
     // The monocle has leapt from its post and swings ahead on its chain.
     const m: Pt = [hox + 12, hoy];
@@ -829,16 +827,16 @@ function monocleRing(p: Pix, m: Pt, lens: boolean): void {
 
 function puddleHead(p: Pix, q: Pose, ox: number, oy: number, sy: number): void {
   stamp(p, ox, oy, PUDDLE_HEAD, { s: SP.skin, S: SP.skinS, w: SP.shine, f: SP.fringe, F: SP.fringeS });
-  p.px(ox - 1, oy + 3, SP.fringe); // the fringe sticks out a touch
+  p.px(ox - 1, oy + 2, SP.fringe); // the fringe sticks out a touch
   // A noble nose.
-  p.px(ox + 10, oy + 3, SP.skin);
-  p.px(ox + 10, oy + 4, SP.nose);
-  p.px(ox + 11, oy + 4, SP.nose);
+  p.px(ox + 10, oy + 2, SP.skin);
+  p.px(ox + 10, oy + 3, SP.nose);
+  p.px(ox + 11, oy + 3, SP.nose);
   // Neck.
-  p.rect(ox + 4, oy + 7, 3, Math.max(0, sy - oy - 7), SP.skinS);
+  p.rect(ox + 4, oy + 6, 2, Math.max(0, sy - oy - 6), SP.skinS);
 
   const ex = ox + 6;
-  const ey = oy + 3;
+  const ey = oy + 2;
   const e = SP.eye;
   // Brow (silver, bristling).
   const br = q.brow === 'up' && q.hat >= 1 ? ey - 3 : ey - 2;
@@ -847,7 +845,7 @@ function puddleHead(p: Pix, q: Pose, ox: number, oy: number, sy: number): void {
   if (q.brow === 'up') p.px(ex - 2, br + 1, SP.fringeS);
 
   // Monocle chain first, so the moustache sits over it.
-  if (q.monocle === 'on') line1(p, [ex - 1, ey + 2], [ex - 2, sy + 1], SP.monocleS);
+  if (q.monocle === 'on') for (let y = ey + 2; y <= oy + 5; y += 2) p.px(ex - 1, y, SP.monocleS);
   switch (q.eyes) {
     case 'blink':
     case 'calm':
@@ -887,10 +885,10 @@ function puddleHead(p: Pix, q: Pose, ox: number, oy: number, sy: number): void {
 
   // Handlebar moustache: bulk under the nose, waxed tips.
   const sx = ox + 7;
-  const my = oy + 5;
-  p.hline(sx, sx + 3, my, SP.stache);
-  p.px(sx + 1, my, SP.stacheL);
-  p.px(sx + 2, my, SP.stacheL);
+  const my = oy + 4;
+  p.hline(sx - 1, sx + 3, my, SP.stache);
+  p.hline(sx, sx + 2, my - 1, SP.stache);
+  p.px(sx + 1, my - 1, SP.stacheL);
   const tips: Record<Pose['stache'], Pt[]> = {
     rest: [[-1, 0], [-2, 0], [-3, -1], [4, 0], [5, -1]],
     twitch: [[-1, 0], [-2, -1], [-3, -2], [4, -1], [5, -2]],
@@ -928,7 +926,7 @@ function topHat(p: Pix, q: Pose, cx: number, brim: number): void {
     const y = brim - dy;
     p.hline(cx - 3 - shear(y), cx + 4 - shear(y), y, c);
   }
-  const fy = brim - 3;
+  const fy = brim - 3; // flower
   const fx = cx + 3 - shear(fy);
   p.px(fx, fy - 1, SP.petal);
   p.px(fx - 1, fy, SP.petal);
@@ -991,7 +989,7 @@ function duckHead(p: Pix, x: number, y: number, q: Pose): void {
 
 function puddleLeg(p: Pix, hip: Pt, f: Foot, far: boolean): void {
   const ankle: Pt = [f.x, f.y + 1];
-  const knee = f.knee ?? joint(hip, ankle, 4.4, 1);
+  const knee = f.knee ?? joint(hip, ankle, 3.6, 1);
   const c = far ? SP.skinS : SP.skin;
   const s = far ? SP.skinD : SP.skinS;
   // Two-pixel spindly legs: lit front edge, shaded back edge.

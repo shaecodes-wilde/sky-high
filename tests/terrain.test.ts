@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TerrainDef } from '../src/level/types';
-import { blocked, groundUnder, moveGrounded, surfaceContact, sweepX, sweepY, type Body, type Solid } from '../src/sim/collision';
+import { blocked, groundUnder, moveGrounded, surfaceContact, sweepAir, sweepX, sweepY, type Body, type Solid } from '../src/sim/collision';
 import { sampleTerrain, terrainAboveIntervals, terrainSupport, terrainToSolid, terrainValleys } from '../src/sim/terrain';
 import { box, makePlayer } from './helpers';
 
@@ -315,5 +315,117 @@ describe('grounded connectivity and physical launches', () => {
     expect(result.separated).toBe(true);
     expect(b).toMatchObject({ x: 70, y: 0 });
     expect(groundUnder([left, right], b)).toBeNull();
+  });
+});
+
+describe('continuous airborne curve contact', () => {
+  it.each(['island', 'cloud'] as const)('preserves an uphill dash landing as top contact on %s in both directions', (kind) => {
+    for (const dir of [-1, 1] as const) {
+      const def = ramp(kind);
+      if (dir < 0) def.knots = [{ x: 0, y: 50, slope: -0.5 }, { x: 100, y: 0, slope: -0.5 }];
+      const solid = terrainToSolid(def);
+      const x = dir > 0 ? 20 : 80;
+      const player = makePlayer(x, terrainSupport(def, x - 5, x + 5)!.y + 0.1);
+      player.vx = dir * 225;
+      player.vy = -30;
+      const result = sweepAir([solid], player, player.vx / 60, player.vy / 60, 0, 0);
+      expect(result.hitX).toBeNull();
+      expect(result.hitY).toBe(solid);
+      expect(result.landed).toBe(true);
+      expect(result.contact!.solid).toBe(solid);
+      expect(player.x).toBeCloseTo(x + dir * 3.75, 10);
+      expect(player.y).toBeCloseTo(14.375, 10);
+      expect(player.vx).toBe(dir * 225);
+      expect(blocked([solid], player.x, player.y, player.w, player.h)).toBe(false);
+    }
+  });
+
+  it('catches a diagonal fall crossing an entire thin curve in one step', () => {
+    const solid = terrainToSolid(ramp('cloud'));
+    const b = body(-30, 80);
+    const result = sweepAir([solid], b, 100, -100, 0, 0);
+    expect(result.hitX).toBeNull();
+    expect(result.hitY).toBe(solid);
+    expect(result.landed).toBe(true);
+    expect(b.x).toBeCloseTo(70, 8);
+    expect(b.y).toBeCloseTo(37.5, 8);
+  });
+
+  it('catches between-knot cubic peaks during a diagonal sweep', () => {
+    const def: TerrainDef = { id: 2400, kind: 'island', bottom: -10, knots: [{ x: 0, y: 0, slope: 2 }, { x: 100, y: 0, slope: -2 }] };
+    const solid = terrainToSolid(def);
+    const b = body(-40, 80);
+    const result = sweepAir([solid], b, 120, -60, 0, 0);
+    expect(result.hitX).toBeNull();
+    expect(result.hitY).toBe(solid);
+    expect(result.landed).toBe(true);
+    expect(b.x).toBeCloseTo(80, 8);
+    expect(b.y).toBeCloseTo(37.5, 8);
+    expect(blocked([solid], b.x, b.y, b.w, b.h)).toBe(false);
+  });
+
+  it('retains real two-way side contact when entering below a curve endpoint', () => {
+    const solid = terrainToSolid(ramp());
+    const b = body(-30, -20);
+    const result = sweepAir([solid], b, 100, -10, 0, 0);
+    expect(result.hitX).toBe(solid);
+    expect(result.landed).toBe(false);
+    expect(b.x + b.w / 2).toBeCloseTo(0, 8);
+    expect(b.y).toBeCloseTo(-30, 8);
+    expect(blocked([solid], b.x, b.y, b.w, b.h)).toBe(false);
+  });
+
+  it('stops against a curve underside while retaining unobstructed horizontal motion', () => {
+    const solid = terrainToSolid(ramp());
+    const b = body(20, -100);
+    const result = sweepAir([solid], b, 30, 100, 0, 0);
+    expect(result.hitX).toBeNull();
+    expect(result.hitY).toBe(solid);
+    expect(result.landed).toBe(false);
+    expect(b.x).toBeCloseTo(50, 8);
+    expect(b.y + b.h).toBeCloseTo(-60, 8);
+  });
+
+  it('passes upward through a one-way curve without landing or wall contact', () => {
+    const solid = terrainToSolid(ramp('cloud'));
+    const b = body(20, -30);
+    expect(sweepAir([solid], b, 40, 100, 0, 0)).toMatchObject({ hitX: null, hitY: null, landed: false });
+    expect(b).toMatchObject({ x: 60, y: 70 });
+  });
+
+  it('does not catch one-way horizontal or diagonal movement from below', () => {
+    const solid = terrainToSolid(ramp('cloud'));
+    const b = body(-30, -20);
+    expect(sweepAir([solid], b, 100, -10, 0, 0)).toMatchObject({ hitX: null, hitY: null, landed: false });
+    expect(b).toMatchObject({ x: 70, y: -30 });
+  });
+
+  it('honors thin walls and ceilings in the same mixed-terrain diagonal sweep', () => {
+    const solid = terrainToSolid(ramp());
+    const wall = box(35, -60, 0.1, 180);
+    const b = body(20, 60);
+    const wallResult = sweepAir([solid, wall], b, 60, -20, 0, 0);
+    expect(wallResult.hitX).toBe(wall);
+    expect(b.x + b.w / 2).toBeCloseTo(35, 8);
+    expect(blocked([solid, wall], b.x, b.y, b.w, b.h)).toBe(false);
+    const ceiling = box(10, 80, 90, 0.1);
+    const c = body(20, 40);
+    const ceilingResult = sweepAir([solid, ceiling], c, 40, 100, 0, 0);
+    expect(ceilingResult.hitY).toBe(ceiling);
+    expect(c.x).toBeCloseTo(60, 8);
+    expect(c.y + c.h).toBeCloseTo(80, 8);
+  });
+
+  it.each([
+    [0, 60, 100, -80], [0, 0, 100, 0], [0, 0, 30, 100], [0, 60, -100, -80],
+  ])('retains exact legacy flat-axis results for (%s,%s)+(%s,%s)', (x, y, dx, dy) => {
+    const solids = [box(-100, -50, 250, 50), box(40, 0, 2, 70), box(-20, 40, 18, 10)];
+    const original = body(x, y);
+    const combined = { ...original };
+    const xr = sweepX(solids, original, dx, 4);
+    const yr = sweepY(solids, original, dy, 4);
+    const result = sweepAir(solids, combined, dx, dy, 4, 4);
+    expect(combined).toEqual(original);
+    expect(result).toMatchObject({ hitX: xr.hit, hitY: yr.hit, landed: yr.landed });
   });
 });

@@ -1,5 +1,5 @@
 import type { TerrainDef } from '../level/types';
-import { sampleTerrain, terrainAboveIntervals, terrainSupport, terrainValleys, type TerrainSample, type TerrainValley } from './terrain';
+import { sampleTerrain, terrainAboveIntervals, terrainCriticalXs, terrainLineCrossings, terrainSupport, terrainValleys, type TerrainSample, type TerrainValley } from './terrain';
 
 // Explicit 2D collision against boxes and analytic cubic heightfields.
 // Conventions: y-up; a Box is { x, y } = bottom-left; a Body is
@@ -57,9 +57,13 @@ export interface SurfaceContact extends TerrainSample {
 
 /** Actual highest supporting point under the body's foot span. */
 function support(s: Solid, b: Body): SurfaceContact | null {
-  if (!s.active || !overlapsX(s, b.x - b.w / 2, b.x + b.w / 2)) return null;
-  if (!s.terrain) return { solid: s, x: b.x, y: top(s), slope: 0, curvature: 0, tangent: { x: 1, y: 0 }, normal: { x: 0, y: 1 } };
-  const point = terrainSupport(s.terrain, b.x - b.w / 2, b.x + b.w / 2);
+  if (!s.active) return null;
+  if (!s.terrain) return overlapsX(s, b.x - b.w / 2, b.x + b.w / 2) ? { solid: s, x: b.x, y: top(s), slope: 0, curvature: 0, tangent: { x: 1, y: 0 }, normal: { x: 0, y: 1 } } : null;
+  const left = Math.max(s.x, b.x - b.w / 2);
+  const right = Math.min(s.x + s.w, b.x + b.w / 2);
+  if (right < left) return null;
+  // A swept landing may touch a domain endpoint exactly before entering it.
+  const point = terrainSupport(s.terrain, left, right) ?? sampleTerrain(s.terrain, left);
   if (!point) return null;
   const valley = terrainValleys(s.terrain).filter((v) => b.x >= v.leftX && b.x <= v.rightX).sort((a, c) => Math.abs(a.x - b.x) - Math.abs(c.x - b.x))[0];
   return { ...point, solid: s, ...(valley ? { valley } : {}) };
@@ -197,6 +201,139 @@ export function sweepY(solids: readonly Solid[], b: Body, dy: number, cornerNudg
 /** The surface the body is standing on, if any (feet exactly on its top). */
 export function groundUnder(solids: readonly Solid[], b: Body): Solid | null {
   return surfaceContact(solids, b)?.solid ?? null;
+}
+
+export interface AirMoveResult {
+  hitX: Solid | null;
+  hitY: Solid | null;
+  landed: boolean;
+  contact: SurfaceContact | null;
+}
+
+interface AirContact {
+  time: number;
+  axis: 'x' | 'y';
+  landed: boolean;
+  solid: Solid;
+  contact: SurfaceContact | null;
+}
+
+function axisInterval(position: number, delta: number, minimum: number, maximum: number): [number, number] | null {
+  if (delta === 0) return position > minimum + EPS && position < maximum - EPS ? [-Infinity, Infinity] : null;
+  const a = (minimum - position) / delta;
+  const c = (maximum - position) / delta;
+  return [Math.min(a, c), Math.max(a, c)];
+}
+
+/** Swept Minkowski-box contact, used only in mixed curved-terrain motion. */
+function boxAirContact(s: Solid, b: Body, dx: number, dy: number): AirContact | null {
+  if (s.oneWay) {
+    if (dy >= 0 || b.y < top(s) - EPS) return null;
+    const time = (top(s) - b.y) / dy;
+    if (time < 0 || time > 1) return null;
+    const probe = bodyAt(b, b.x + dx * time, top(s));
+    const contact = support(s, probe);
+    return contact ? { time, axis: 'y', landed: true, solid: s, contact } : null;
+  }
+  const xs = axisInterval(b.x, dx, s.x - b.w / 2, s.x + s.w + b.w / 2);
+  const ys = axisInterval(b.y, dy, s.y - b.h, top(s));
+  if (!xs || !ys) return null;
+  const time = Math.max(xs[0], ys[0]);
+  if (time < -EPS || time > 1 || time > Math.min(xs[1], ys[1])) return null;
+  const axis = ys[0] >= xs[0] - 1e-10 ? 'y' : 'x';
+  const landed = axis === 'y' && dy < 0;
+  const probe = bodyAt(b, b.x + dx * Math.max(0, time), b.y + dy * Math.max(0, time));
+  return { time: Math.max(0, time), axis, landed, solid: s, contact: landed ? support(s, probe) : null };
+}
+
+/** Exact AABB foot contacts: moving edges plus all interior cubic extrema. */
+function curveAirContacts(s: Solid, b: Body, dx: number, dy: number): AirContact[] {
+  const def = s.terrain!;
+  const contacts: AirContact[] = [];
+  if (!s.oneWay || dy < 0) {
+    const times = [
+      ...terrainLineCrossings(def, b.x - b.w / 2, b.y, dx, dy),
+      ...terrainLineCrossings(def, b.x + b.w / 2, b.y, dx, dy),
+    ];
+    if (dy < 0) {
+      for (const x of terrainCriticalXs(def, s.x, s.x + s.w)) {
+        const time = (sampleTerrain(def, x)!.y - b.y) / dy;
+        if (time >= 0 && time <= 1 && Math.abs(x - (b.x + dx * time)) <= b.w / 2 + EPS) times.push(time);
+      }
+    }
+    for (const time of times) {
+      const probe = bodyAt(b, b.x + dx * time, b.y + dy * time);
+      const point = support(s, probe);
+      if (!point || Math.abs(point.y - probe.y) > 1e-6 || dy - dx * point.slope >= -1e-9) continue;
+      // Reject roots reached while already intersecting the same surface.
+      const beforeTime = Math.max(0, time - 1e-7);
+      const before = bodyAt(b, b.x + dx * beforeTime, b.y + dy * beforeTime);
+      const previous = support(s, before);
+      if (previous && before.y < previous.y - EPS) continue;
+      contacts.push({ time, axis: 'y', landed: true, solid: s, contact: point });
+    }
+  }
+  if (s.oneWay) return contacts;
+  // True vertical sides remain solid; the sloped top is not a fake wall.
+  if (dx !== 0) {
+    const edge = dx > 0 ? s.x : s.x + s.w;
+    const time = (edge - (b.x + Math.sign(dx) * b.w / 2)) / dx;
+    if (time >= 0 && time <= 1) {
+      const feet = b.y + dy * time;
+      if (feet < sampleTerrain(def, edge)!.y - EPS && feet + b.h > s.y + EPS) contacts.push({ time, axis: 'x', landed: false, solid: s, contact: null });
+    }
+  }
+  if (dy > 0 && b.y + b.h <= s.y + EPS) {
+    const time = (s.y - (b.y + b.h)) / dy;
+    const x = b.x + dx * time;
+    if (time >= 0 && time <= 1 && overlapsX(s, x - b.w / 2, x + b.w / 2)) contacts.push({ time, axis: 'y', landed: false, solid: s, contact: null });
+  }
+  return contacts;
+}
+
+/**
+ * Moves the complete airborne segment. Flat-only paths retain the original
+ * axis order exactly. Near a curve, cubic intersection times resolve top
+ * contact before an uphill face can erase earned horizontal momentum.
+ */
+export function sweepAir(solids: readonly Solid[], b: Body, dx: number, dy: number, cornerNudge: number, ledgeNudge: number): AirMoveResult {
+  const left = Math.min(b.x, b.x + dx) - b.w / 2;
+  const right = Math.max(b.x, b.x + dx) + b.w / 2;
+  const bottom = Math.min(b.y, b.y + dy);
+  const head = Math.max(b.y, b.y + dy) + b.h;
+  const nearCurve = solids.some((s) => s.active && s.terrain && overlapsX(s, left, right) && overlapsY(s, bottom, head));
+  if (!nearCurve) {
+    const xr = sweepX(solids, b, dx, ledgeNudge);
+    const yr = sweepY(solids, b, dy, cornerNudge);
+    return { hitX: xr.hit, hitY: yr.hit, landed: yr.landed, contact: yr.landed ? surfaceContact(solids, b) : null };
+  }
+  let first: AirContact | null = null;
+  for (const s of solids) {
+    if (!s.active) continue;
+    const candidates = s.terrain ? curveAirContacts(s, b, dx, dy) : [boxAirContact(s, b, dx, dy)];
+    for (const candidate of candidates) {
+      if (candidate && (!first || candidate.time < first.time - 1e-10 || (Math.abs(candidate.time - first.time) <= 1e-10 && candidate.landed))) first = candidate;
+    }
+  }
+  if (!first) {
+    b.x += dx;
+    b.y += dy;
+    return { hitX: null, hitY: null, landed: false, contact: null };
+  }
+  const fraction = Math.max(0, 1 - first.time);
+  b.x += dx * first.time;
+  b.y += dy * first.time;
+  if (first.landed && first.contact) {
+    b.y = first.contact.y;
+    const ground = moveGrounded(solids, b, dx * fraction, 0, 0, false);
+    return { hitX: ground.hit, hitY: first.solid, landed: true, contact: surfaceContact(solids, b) };
+  }
+  if (first.axis === 'x') {
+    const rest = sweepAir(solids, b, 0, dy * fraction, cornerNudge, ledgeNudge);
+    return { ...rest, hitX: first.solid };
+  }
+  const rest = sweepAir(solids, b, dx * fraction, 0, cornerNudge, ledgeNudge);
+  return { ...rest, hitY: first.solid };
 }
 
 export interface GroundMoveResult extends MoveResult {

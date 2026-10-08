@@ -154,6 +154,50 @@ export function terrainAboveIntervals(def: TerrainDef, height: number): [number,
   return result;
 }
 
+/** Exact times where a linearly moving point crosses an authored cubic. */
+export function terrainLineCrossings(def: TerrainDef, x: number, y: number, dx: number, dy: number): number[] {
+  const result: number[] = [];
+  for (let i = 0; i < def.knots.length - 1; i++) {
+    const left = def.knots[i];
+    const right = def.knots[i + 1];
+    let start = 0;
+    let end = 1;
+    if (dx === 0) {
+      if (x < left.x || x > right.x) continue;
+    } else {
+      const t0 = (left.x - x) / dx;
+      const t1 = (right.x - x) / dx;
+      start = Math.max(0, Math.min(t0, t1));
+      end = Math.min(1, Math.max(t0, t1));
+      if (end < start) continue;
+    }
+    const span = right.x - left.x;
+    const u = (x - left.x) / span;
+    const v = dx / span;
+    const [a, b, c, d] = segmentCoefficients(def)[i];
+    const p3 = -a * v * v * v;
+    const p2 = -(3 * a * u + b) * v * v;
+    const p1 = dy - (3 * a * u * u + 2 * b * u + c) * v;
+    const p0 = y - (((a * u + b) * u + c) * u + d);
+    const evaluate = (t: number) => ((p3 * t + p2) * t + p1) * t + p0;
+    const cuts = [start, ...quadraticRoots(3 * p3, 2 * p2, p1).filter((t) => t > start && t < end), end].sort((a, b) => a - b);
+    for (const t of cuts) if (Math.abs(evaluate(t)) <= 1e-9) result.push(t);
+    for (let n = 0; n < cuts.length - 1; n++) {
+      let low = cuts[n];
+      let high = cuts[n + 1];
+      const lowPositive = evaluate(low) > 0;
+      if (lowPositive === (evaluate(high) > 0)) continue;
+      for (let k = 0; k < 48; k++) {
+        const middle = (low + high) / 2;
+        if ((evaluate(middle) > 0) === lowPositive) low = middle;
+        else high = middle;
+      }
+      result.push((low + high) / 2);
+    }
+  }
+  return result.sort((a, b) => a - b).filter((t, i, times) => i === 0 || Math.abs(t - times[i - 1]) > 1e-9);
+}
+
 /** Stable geometric valleys; tiny ripple/flat geometry never becomes pumpable. */
 export function terrainValleys(def: TerrainDef): TerrainValley[] {
   if (!def.pump) return [];

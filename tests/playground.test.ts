@@ -49,4 +49,18 @@ describe('developer movement playground', () => {
     s.reset(w);
     expect(s.replaying).toBe(false);
   });
+  it('retains an independent physical pump gesture when a live edge buffer is reused', () => {
+    const w = new World(PLAYGROUND_LEVEL, MOVEMENT, 'adventure');
+    const s = new PlaygroundSession(); s.record(w);
+    const edges = [{ dir: 1 as const, down: false, age: 0.008 }, { dir: 1 as const, down: true, age: 0.004 }];
+    const frame = input({ move: 1, rollHeld: true, directionEvents: edges });
+    s.input(frame);
+    edges[0].down = true;
+    edges.splice(1);
+    s.recording = false;
+    expect(s.replay(w)).toBe(true);
+    expect(s.input(input()).directionEvents).toEqual([
+      { dir: 1, down: false, age: 0.008 }, { dir: 1, down: true, age: 0.004 },
+    ]);
+  });
 });

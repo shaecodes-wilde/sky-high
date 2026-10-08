@@ -6,6 +6,7 @@ import type { Settings } from '../persist/settings';
 import { CHARACTER_INFO, type CharacterId } from '../render/characters';
 import { GameRenderer } from '../render/GameRenderer';
 import type { GameMode } from '../sim/World';
+import { buildWordmark, installOrnaments } from './ornaments';
 
 // DOM menus and HUD, laid over the letterboxed game view and scaled with
 // the same integer factor as the pixel art. The HUD is updated with direct
@@ -45,6 +46,10 @@ export class UI {
   private menu: HTMLElement;
   private hud: HTMLElement;
   private hudLeft: HTMLElement;
+  private hudNotes: HTMLElement[] = [];
+  private hudSeeds: HTMLElement;
+  private hudBloom: HTMLElement;
+  private bloomTier = -1;
   private hudRight: HTMLElement;
   private hudTime: HTMLElement;
   private hudPractice: HTMLElement;
@@ -57,8 +62,22 @@ export class UI {
 
   constructor(root: HTMLElement) {
     this.root = root;
+    installOrnaments(root);
     this.hud = el('div', 'hud');
     this.hudLeft = el('div', 'chip left');
+    // Melody pips, a sun-seed counter and the Bloom curl, printed as tiny plates.
+    const notes = el('span', 'notes');
+    for (let i = 0; i < 3; i++) {
+      const n = el('i', 'pip note');
+      this.hudNotes.push(n);
+      notes.append(n);
+    }
+    const seeds = el('span', 'seeds');
+    this.hudSeeds = el('span', 'count');
+    seeds.append(el('i', 'pip seed'), this.hudSeeds);
+    this.hudBloom = el('i', 'pip bloom');
+    this.hudBloom.title = 'Bloom';
+    this.hudLeft.append(notes, seeds, this.hudBloom);
     this.hudRight = el('div', 'chip right');
     this.hudTime = el('span');
     this.hudPractice = el('span', 'practice');
@@ -130,7 +149,7 @@ export class UI {
   showTitle(onStart: () => void): void {
     const p = el('div', 'panel title');
     p.append(
-      el('div', 'logo', 'CLOUDBLOOM'),
+      buildWordmark().el,
       el('div', 'subtitle', 'A Sky Out of Tune'),
       el('div', 'tag', 'working title · vertical slice'),
     );
@@ -213,8 +232,7 @@ export class UI {
   showSelect(current: CharacterId, onPick: (c: CharacterId) => void, onBack: () => void, onMove: () => void): void {
     const wrap = el('div');
     wrap.style.pointerEvents = 'auto';
-    const head = el('h2', '', 'Who will carry the missing melody?');
-    head.style.cssText = 'text-align:center;color:#fff;text-shadow:0 calc(var(--u)*1) 0 var(--ink),calc(var(--u)*1) 0 0 var(--ink),calc(var(--u)*-1) 0 0 var(--ink),0 calc(var(--u)*-1) 0 var(--ink);margin-bottom:calc(var(--u)*8)';
+    const head = el('h2', 'select-head', 'Who will carry the missing melody?');
     const chars = el('div', 'chars');
     let sel = current;
     const cards = new Map<CharacterId, HTMLElement>();
@@ -222,7 +240,7 @@ export class UI {
       const info = CHARACTER_INFO[id];
       const card = el('div', 'char');
       card.tabIndex = 0;
-      card.append(GameRenderer.portrait(id, 'idle0', 3));
+      card.append(GameRenderer.portrait(id, 'idle0', 3), el('div', 'lip'));
       card.append(el('h3', '', esc(info.name)), el('p', 'muted', esc(info.blurb)), el('p', 'line', esc(info.line)));
       card.addEventListener('click', () => (sel === id ? onPick(id) : choose(id)));
       card.addEventListener('focus', () => choose(id));
@@ -242,8 +260,7 @@ export class UI {
     };
     choose(current);
     const bed = el('div', 'cloudbed');
-    const note = el('p', 'muted', 'Both travel exactly the same way — choose whoever makes you smile.');
-    note.style.cssText = 'text-align:center;color:#fff;text-shadow:0 1px 0 #3b2d5c';
+    const note = el('p', 'select-note', 'Both travel exactly the same way — choose whoever makes you smile.');
     const actions = this.buttons([
       ['Back', onBack],
       ['Begin', () => onPick(sel), { big: true }],
@@ -341,7 +358,7 @@ export class UI {
   }
 
   showComplete(c: CompleteInfo, onAgain: () => void, onTitle: () => void): void {
-    const p = el('div', 'panel');
+    const p = el('div', 'panel complete');
     p.append(el('h2', '', 'The morning remembers its song'));
     const who = CHARACTER_INFO[c.character].name;
     p.append(el('p', '', `${esc(who)} reached the sleeping sun with ${c.fragments}/3 melody fragments.`));
@@ -391,10 +408,22 @@ export class UI {
     const key = `${mode}|${fragments}|${seeds}|${mode === 'timeTrial' ? time.toFixed(2) : ''}|${practice}`;
     if (key === this.lastHud) return;
     this.lastHud = key;
-    this.hudLeft.textContent = `♪ ${fragments}/3   ✿ ${seeds}`;
+    this.hudNotes.forEach((n, i) => n.classList.toggle('on', i < fragments));
+    this.hudSeeds.textContent = String(seeds);
+    this.hudLeft.setAttribute('aria-label', `Melody fragments ${fragments} of 3, sun-seeds ${seeds}`);
     this.hudRight.style.display = mode === 'timeTrial' ? '' : 'none';
     this.hudTime.textContent = formatTime(time);
     this.hudPractice.textContent = practice ? `practice · ${practice}` : '';
+  }
+
+  /** Optional: shows the Bloom tier as a curl that prints more plates (presentation only). */
+  setBloom(tier: 0 | 1 | 2): void {
+    if (tier === this.bloomTier) return;
+    this.bloomTier = tier;
+    this.hudBloom.dataset.tier = String(tier);
+    this.hudBloom.classList.remove('pulse');
+    void this.hudBloom.offsetWidth;
+    if (tier > 0) this.hudBloom.classList.add('pulse');
   }
 
   toast(html: string, seconds = 2.2): void {

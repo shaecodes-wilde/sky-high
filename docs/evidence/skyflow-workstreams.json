@@ -1,0 +1,64 @@
+{
+    "base":  "0701b28",
+    "branch":  "feat/cloud-curl-skyflow",
+    "terrain":  {
+                    "status":  "integrated",
+                    "commits":  [
+                                    "2fcd2b8316b9d25d1b78acf1c83ca203bf1b98af",
+                                    "0799d4895a74cce7f8f8b3fdb5e641ff6774a604",
+                                    "bf5f8232a043512f96d4e35e380c2e6e10085ba3",
+                                    "1bf1dff52232cb8151682b8672789f25bb380d11",
+                                    "0ff0639ae59f7a1af2dcc45bf5fdf2c594b45977"
+                                ]
+                },
+    "world":  {
+                  "status":  "integrated",
+                  "commit":  "3eaf89a"
+              },
+    "inputBoundary":  {
+                          "status":  "integrated",
+                          "commit":  "df897eb"
+                      },
+    "controller":  {
+                       "status":  "integrated",
+                       "branch":  "work/skyflow-controller",
+                       "commits":  [
+                                       "e7d5682a9f87b425bc9c8c68f0a2c06be64f1687",
+                                       "fb30c4aa48b79dbf5fb490dffcae779234422ef8",
+                                       "db3b44a0a6311820ab10e53d6eeccf2991541431"
+                                   ]
+                   },
+    "animation":  {
+                      "status":  "integrated",
+                      "branch":  "work/skyflow-animation",
+                      "commits":  [
+                                      "14b52f2",
+                                      "8051445"
+                                  ]
+                  },
+    "levels":  {
+                   "status":  "integrated",
+                   "branch":  "work/skyflow-levels",
+                   "commits":  [
+                                   "474b038",
+                                   "c740b81"
+                               ]
+               },
+    "validation":  {
+                       "branch":  "work/skyflow-validation",
+                       "status":  "integrated",
+                       "commits":  [
+                                       "87d54304765b939de8e031b0425d1c74bf39c9ab",
+                                       "c90dfba90d5d5c2b791b9cb714414a770ba0a1c1",
+                                       "5fbec8c"
+                                   ]
+                   },
+    "gameIntegration":  {
+                            "status":  "integrated",
+                            "commits":  [
+                                            "cf18557",
+                                            "27893f2"
+                                        ]
+                        },
+    "commitMeaning":  "Owned source commits. Their cherry-picked equivalents are present in feat/cloud-curl-skyflow; dependency commits were kept separate in isolated worktrees."
+}

@@ -1,5 +1,11 @@
 # Movement phrases and route evidence
 
+Historical route evidence from the movement-rules-2 build. Existing routes
+remain regression fixtures. Current curved-terrain authoring and Skyflow
+measurements are in [LEVEL_DESIGN_STANDARD.md](LEVEL_DESIGN_STANDARD.md),
+[SKYFLOW_LABORATORY.md](SKYFLOW_LABORATORY.md) and
+[SKYFLOW_IMPLEMENTATION_REPORT.md](SKYFLOW_IMPLEMENTATION_REPORT.md).
+
 Level 1 remains *The Morning That Forgot to Happen*. Story, both characters,
 the three melody fragments and keepsakes, NPCs, hazards, recovery paths,
 checkpoints, Petal Parade and sleeping-sun ending remain in place. Its landing

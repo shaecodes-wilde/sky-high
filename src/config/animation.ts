@@ -11,6 +11,7 @@ export type AnimName =
   | 'run'
   | 'brake'
   | 'jump'
+  | 'launch'
   | 'apex'
   | 'fall'
   | 'dash'
@@ -31,6 +32,8 @@ export const ANIMS: Record<AnimName, AnimDef> = {
   run: { frames: ['run0', 'run1', 'run2', 'run3', 'run4', 'run5'], fps: 13, loop: true },
   brake: { frames: ['brake'], fps: 1, loop: false },
   jump: { frames: ['jump'], fps: 1, loop: false },
+  // Visual anticipation only: physics responds immediately on the input step.
+  launch: { frames: ['land', 'jump'], fps: 60, loop: false },
   apex: { frames: ['apex'], fps: 1, loop: false },
   fall: { frames: ['fall0', 'fall1'], fps: 8, loop: true },
   dash: { frames: ['dash'], fps: 1, loop: false },

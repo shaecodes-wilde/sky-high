@@ -1,4 +1,5 @@
 import { DOUBLE_TAP_DEFAULT_MS, DOUBLE_TAP_RANGE_MS, type AssistMode } from '../config/movement';
+import { DEFAULT_BINDINGS } from '../config/keys';
 import { PRESETS, type PresetName, type Presentation } from '../config/presentation';
 import type { CharacterId } from '../render/characters';
 import type { GameMode } from '../sim/World';
@@ -47,6 +48,9 @@ export function loadSettings(store: KVStore): Settings {
     const s = { ...d, ...JSON.parse(raw) } as Settings;
     s.doubleTapMs = Math.min(DOUBLE_TAP_RANGE_MS[1], Math.max(DOUBLE_TAP_RANGE_MS[0], Number(s.doubleTapMs) || d.doubleTapMs));
     if (!(s.preset in PRESETS)) s.preset = d.preset;
+    // S/Down were previously legal custom dash keys. Cloud Curl now owns
+    // them, so restore an available dash rather than show a silent conflict.
+    if (DEFAULT_BINDINGS.roll.includes(s.dashKey)) s.dashKey = d.dashKey;
     return s;
   } catch {
     return d;

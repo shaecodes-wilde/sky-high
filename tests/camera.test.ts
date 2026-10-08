@@ -22,4 +22,14 @@ describe('movement camera', () => {
       expect(y + 32).toBeLessThanOrEqual(c.y + VIEW_H / 2 - 29);
     }
   });
+  it('shows a fall to the real recovery/death boundary with the gameplay lower bound', () => {
+    const killY = -80;
+    const c = new CameraRig(-220, 6900, killY + VIEW_H / 2 - 30);
+    let y = 64; c.snapTo(6030, y, 1);
+    while (y >= killY) {
+      c.step(SIM_DT, 6030, y, 0, 1, false, -340);
+      expect(y).toBeGreaterThanOrEqual(c.y - VIEW_H / 2 + 29);
+      y -= 340 * SIM_DT;
+    }
+  });
 });

@@ -8,7 +8,7 @@ import type { LevelData } from '../level/types';
 import type { PlaygroundSession } from '../dev/playground';
 import { formatDelta, formatTime, getRecord, recordKey, safeStorage, submitCleanRun, type KVStore } from '../persist/records';
 import { applyPreset, loadSettings, presentationOf, saveSettings, type Settings } from '../persist/settings';
-import { CameraRig } from '../render/CameraRig';
+import { CameraRig, VIEW_H } from '../render/CameraRig';
 import type { CharacterId } from '../render/characters';
 import { GameRenderer } from '../render/GameRenderer';
 import { World, type WorldEvent } from '../sim/World';
@@ -51,7 +51,7 @@ export class Game {
     this.playground = options.playground;
     this.character = this.settings.character;
     this.world = this.makeWorld();
-    this.camera = new CameraRig(this.level.minX, this.level.maxX, 110);
+    this.camera = new CameraRig(this.level.minX, this.level.maxX, this.level.killY + VIEW_H / 2 - 30);
     this.renderer.buildLevel(this.world);
     this.renderer.setCharacter(this.character);
     this.camera.snapTo(this.level.start.x + 120, this.level.start.y, 1);
@@ -212,8 +212,8 @@ export class Game {
   private retryCheckpoint(): void {
     if (this.world.complete) return;
     if (this.settings.mode === 'timeTrial' && !this.practice) this.markPractice('checkpoint retry');
-    this.world.respawn();
-    this.playground?.restoreSectionSpawn(this.world);
+    if (this.playground) this.playground.reset(this.world);
+    else this.world.respawn();
     this.handleEvents(this.world.events);
     this.camera.snapTo(this.world.player.x, this.world.player.y, 1);
     this.input.reset();

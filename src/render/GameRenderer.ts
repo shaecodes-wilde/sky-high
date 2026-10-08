@@ -708,9 +708,10 @@ export class GameRenderer {
       fps = Math.min(RUN_FPS_RANGE[1], Math.max(RUN_FPS_RANGE[0], ANIMS.run.fps * k));
     }
     if (name === 'fall' && p.vy < -240) fps = 12;
+    const frameTime = this.anim.t;
     this.anim.t += dt * fps;
     const def = ANIMS[name];
-    const idx = def.loop ? Math.floor(this.anim.t) % def.frames.length : Math.min(def.frames.length - 1, Math.floor(this.anim.t));
+    const idx = def.loop ? Math.floor(frameTime) % def.frames.length : Math.min(def.frames.length - 1, Math.floor(frameTime));
     const frameName = def.frames[idx];
     const tex = this.playerFrames.get(frameName) ?? null;
     (m.material as THREE.MeshBasicMaterial).map = tex;

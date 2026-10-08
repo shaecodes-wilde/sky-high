@@ -38,4 +38,15 @@ describe('developer movement playground', () => {
       expect([w.player.x, w.player.y, w.player.vx, w.player.vy, w.player.dashCharges, w.player.dashTimer]).toEqual(state);
     }
   });
+  it('section reset stops recording and replay before a manual retry changes physics', () => {
+    const w = new World(PLAYGROUND_LEVEL, MOVEMENT, 'adventure');
+    const s = new PlaygroundSession(); s.reset(w, 4); s.record(w);
+    for (let i = 0; i < 30; i++) { w.step(s.input(input({ move: 1 }))); s.afterStep(w); }
+    s.reset(w);
+    expect(s.recording).toBe(false); expect(s.replaying).toBe(false);
+    expect(s.elapsed).toBe(0); expect(w.player.x).toBe(PLAYGROUND_SECTIONS[4].x);
+    expect(s.replay(w)).toBe(true);
+    s.reset(w);
+    expect(s.replaying).toBe(false);
+  });
 });

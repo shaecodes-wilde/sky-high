@@ -22,6 +22,28 @@ function airborneRing(ringX = 35, ringY = 110): World {
 }
 
 describe('dash commands through the real World contact boundary', () => {
+  it('recognises an early-dash cloud skim after a long arc with fresh keyboard edges', () => {
+    const base = airborneRing().level;
+    const w = new World({ ...base, rings: [], platforms: [{ id: 0, kind: 'cloud', x0: -100, x1: 2000, top: 0, bottom: -8 }] }, MOVEMENT, 'adventure');
+    const keys = new Input();
+    keys.press('KeyD', 'right', 0); keys.press('Space', 'jump', 0);
+    let releasedAt = -1; let pressedAgain = false; let dashAt = -1; let skimAt = -1;
+    for (let i = 0; i < 90 && skimAt < 0; i++) {
+      const t = i * SIM_DT * 1000;
+      if (i === 8) keys.press('ShiftLeft', 'dash', t);
+      if (i === 9) keys.release('ShiftLeft', 'dash', t);
+      if (i > 8 && releasedAt < 0 && w.player.vy < 0 && w.player.y < 12) { keys.release('Space', 'jump', t); releasedAt = i; }
+      if (releasedAt >= 0 && i > releasedAt && !pressedAgain && w.player.y < 6) { keys.press('Space', 'jump', t); pressedAgain = true; }
+      w.step(keys.sample(!w.player.grounded, w.player.facing, t));
+      if (w.events.some(e => e.type === 'dash')) dashAt = i;
+      if (w.events.some(e => e.type === 'skim')) skimAt = i;
+    }
+    expect(skimAt - dashAt).toBeGreaterThan(0.35 / SIM_DT);
+    expect(skimAt).toBeGreaterThan(0);
+    expect(w.player.grounded).toBe(false);
+    expect(w.player.vx).toBeGreaterThan(MOVEMENT.runSpeed);
+    expect(w.player.dashCharges).toBe(1);
+  });
   it.each([0, 1, 4, 5])('consumes a saved direction on ring contact with the press at step %i', (pressStep) => {
     const w = airborneRing();
     const events: string[] = [];

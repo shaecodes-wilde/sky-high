@@ -15,7 +15,6 @@ export interface InputFrame {
 const SPRING_STEP = 14;
 /** Feedback window only: skimming adds no speed or jump height. */
 const SKIM_WINDOW = 0.08;
-const SKIM_DASH_WINDOW = 0.35;
 
 export const NO_INPUT: InputFrame = { move: 0, jumpHeld: false, jumpPressed: false, dash: 0 };
 
@@ -73,7 +72,7 @@ export class Player {
   braking = false;
   readonly events: PlayerEvent[] = [];
   private dashBufferFromGround = false;
-  private sinceDash = 99;
+  private dashUsedThisFlight = false;
   private skimLanding = false;
 
   constructor(public cfg: MovementConfig) {}
@@ -110,7 +109,7 @@ export class Player {
     this.lastSpring = -1;
     this.sinceLand = 99;
     this.sinceSkim = 99;
-    this.sinceDash = 99;
+    this.dashUsedThisFlight = false;
     this.skimLanding = false;
     this.braking = false;
     this.events.length = 0;
@@ -144,7 +143,7 @@ export class Player {
     // Dashing softens vertical motion but never launches upward.
     this.vy *= this.vy > 0 ? c.dashRiseDamping : c.dashFallDamping;
     this.ascent = 'none';
-    this.sinceDash = 0;
+    this.dashUsedThisFlight = true;
     this.events.push({ type: 'dash', dir, x: this.x, y: this.y });
     return true;
   }
@@ -162,7 +161,6 @@ export class Player {
     this.springLate = Math.max(0, this.springLate - dt);
     this.sinceLand += dt;
     this.sinceSkim += dt;
-    this.sinceDash += dt;
     if (input.jumpPressed) this.jumpBuffer = c.jumpBuffer;
     if (input.dash !== 0) {
       this.dashBuffer = c.dashPressBuffer;
@@ -324,6 +322,7 @@ export class Player {
     this.coyote = 0;
     this.jumpBuffer = 0;
     this.ascent = 'jump';
+    this.dashUsedThisFlight = false;
     this.skimLanding = false;
     if (this.dashing) this.endDash('land');
     this.events.push({ type: 'jump', x: this.x, y: this.y });
@@ -345,7 +344,8 @@ export class Player {
     this.ascent = 'none';
     this.dashCharges = 1;
     this.sinceLand = 0;
-    this.skimLanding = (surface === 'cloud' || surface === 'petal') && this.sinceDash <= SKIM_DASH_WINDOW;
+    this.skimLanding = (surface === 'cloud' || surface === 'petal') && this.dashUsedThisFlight;
+    this.dashUsedThisFlight = false;
     // Airborne intent expires on landing, even if a buffered jump rebounds
     // immediately. A fresh grounded press still retains takeoff buffering.
     if (!this.dashBufferFromGround) this.dashBuffer = 0;
@@ -362,6 +362,7 @@ export class Player {
     this.coyote = 0;
     this.vy = boosted ? c.springBoostSpeed : c.springSpeed;
     this.ascent = 'spring';
+    this.dashUsedThisFlight = false;
     this.springLate = boosted ? 0 : c.springLateWindow;
     this.lastSpring = spring;
     this.dashCharges = 1;

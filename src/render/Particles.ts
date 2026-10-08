@@ -1,9 +1,10 @@
 import * as THREE from 'three';
+import { ACCENT, CLOUD, PAPER } from './palette';
 import { hex } from './pixel';
 
 // Pooled square-pixel particles in a single draw call. Purely cosmetic.
 
-export type ParticleKind = 'dust' | 'petal' | 'spore' | 'droplet' | 'sparkle' | 'puff' | 'dew' | 'gold' | 'confetti' | 'wake' | 'mint';
+export type ParticleKind = 'dust' | 'petal' | 'spore' | 'droplet' | 'sparkle' | 'puff' | 'dew' | 'gold' | 'confetti' | 'wake' | 'note' | 'shower' | 'mint';
 
 interface Spec {
   colors: string[];
@@ -16,18 +17,22 @@ interface Spec {
   spread: number;
 }
 
+// Colours come from the shared palette so particles print in the same inks as the world.
 const SPECS: Record<ParticleKind, Spec> = {
-  dust: { colors: ['#ffffff', '#e8defa', '#d5c8f2'], speed: [20, 60], up: 10, gravity: 40, life: [0.25, 0.45], size: [1, 2], drag: 3, spread: Math.PI },
-  petal: { colors: ['#ff9fd0', '#ffd6eb', '#ffb8dd'], speed: [10, 40], up: 20, gravity: -8, life: [0.6, 1.1], size: [2, 2], drag: 1.5, spread: Math.PI },
-  spore: { colors: ['#fff6ea', '#ffe6a8'], speed: [6, 24], up: 18, gravity: -12, life: [0.7, 1.3], size: [1, 1], drag: 1, spread: Math.PI },
-  droplet: { colors: ['#9fe8ff', '#e8fdff', '#6fd2f0'], speed: [30, 80], up: 60, gravity: 320, life: [0.3, 0.6], size: [1, 2], drag: 0.5, spread: Math.PI },
-  sparkle: { colors: ['#fff8d0', '#ffffff', '#ffe27a'], speed: [20, 70], up: 0, gravity: 0, life: [0.25, 0.5], size: [1, 2], drag: 4, spread: Math.PI },
-  puff: { colors: ['#ffffff', '#f2ebff', '#d9ccf6'], speed: [30, 90], up: 10, gravity: -20, life: [0.4, 0.7], size: [2, 4], drag: 4, spread: Math.PI },
-  dew: { colors: ['#86f0ff', '#e8fdff'], speed: [40, 90], up: 0, gravity: 0, life: [0.25, 0.45], size: [1, 2], drag: 5, spread: Math.PI },
-  gold: { colors: ['#ffd447', '#fff3a8'], speed: [20, 60], up: 30, gravity: 60, life: [0.3, 0.5], size: [1, 1], drag: 2, spread: Math.PI },
-  confetti: { colors: ['#ff9fd0', '#ffd447', '#9ff0d0', '#b9a8ff', '#ffffff'], speed: [40, 120], up: 80, gravity: 70, life: [1.2, 2.2], size: [2, 2], drag: 1.2, spread: Math.PI },
-  wake: { colors: ['#ff9fd0', '#ffd447', '#9ff0d0', '#ffffff'], speed: [4, 16], up: 6, gravity: -6, life: [0.5, 0.9], size: [1, 2], drag: 1, spread: Math.PI },
-  mint: { colors: ['#9ff0d0', '#ddfff1', '#73d9b4'], speed: [18, 42], up: 12, gravity: 25, life: [0.18, 0.32], size: [1, 2], drag: 4, spread: Math.PI * 0.6 },
+  dust: { colors: [PAPER.white, PAPER.cream, CLOUD.hi], speed: [20, 60], up: 10, gravity: 40, life: [0.25, 0.45], size: [1, 2], drag: 3, spread: Math.PI },
+  petal: { colors: [ACCENT.petal, ACCENT.petalHi, ACCENT.petalLo], speed: [10, 40], up: 20, gravity: -8, life: [0.6, 1.1], size: [2, 2], drag: 1.5, spread: Math.PI },
+  spore: { colors: [PAPER.cream, ACCENT.goldHi], speed: [6, 24], up: 18, gravity: -12, life: [0.7, 1.3], size: [1, 1], drag: 1, spread: Math.PI },
+  droplet: { colors: [ACCENT.mint, ACCENT.mintHi, '#9fe0ff'], speed: [30, 80], up: 60, gravity: 320, life: [0.3, 0.6], size: [1, 2], drag: 0.5, spread: Math.PI },
+  sparkle: { colors: [ACCENT.goldHi, PAPER.white, ACCENT.gold], speed: [20, 70], up: 0, gravity: 0, life: [0.25, 0.5], size: [1, 2], drag: 4, spread: Math.PI },
+  puff: { colors: [PAPER.white, CLOUD.hi, CLOUD.light], speed: [30, 90], up: 10, gravity: -20, life: [0.4, 0.7], size: [2, 4], drag: 4, spread: Math.PI },
+  dew: { colors: [ACCENT.mint, ACCENT.mintHi], speed: [40, 90], up: 0, gravity: 0, life: [0.25, 0.45], size: [1, 2], drag: 5, spread: Math.PI },
+  gold: { colors: [ACCENT.gold, ACCENT.goldHi], speed: [20, 60], up: 30, gravity: 60, life: [0.3, 0.5], size: [1, 1], drag: 2, spread: Math.PI },
+  confetti: { colors: [ACCENT.petal, ACCENT.gold, ACCENT.mint, '#b8a8ff', PAPER.white], speed: [40, 120], up: 80, gravity: 70, life: [1.2, 2.2], size: [2, 2], drag: 1.2, spread: Math.PI },
+  wake: { colors: [ACCENT.petal, ACCENT.gold, ACCENT.mint, PAPER.white], speed: [4, 16], up: 6, gravity: -6, life: [0.5, 0.9], size: [1, 2], drag: 1, spread: Math.PI },
+  shower: { colors: [ACCENT.petal, ACCENT.petalHi, ACCENT.petalLo, ACCENT.goldHi], speed: [6, 20], up: 0, gravity: 14, life: [3, 4.5], size: [1, 2], drag: 0.6, spread: Math.PI * 0.35 },
+  note: { colors: [ACCENT.goldHi, ACCENT.petalHi, ACCENT.mintHi], speed: [6, 18], up: 14, gravity: -10, life: [0.9, 1.5], size: [1, 2], drag: 1.2, spread: Math.PI * 0.5 },
+  // Cloud Curl pump feedback (movement PR #4), in palette mint.
+  mint: { colors: [ACCENT.mint, ACCENT.mintHi, ACCENT.mintLo], speed: [18, 42], up: 12, gravity: 25, life: [0.18, 0.32], size: [1, 2], drag: 4, spread: Math.PI * 0.6 },
 };
 
 const MAX = 900;

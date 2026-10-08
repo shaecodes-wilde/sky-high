@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ANIMS, FRAME_H, FRAME_W, ROLL_VISUAL, RUN_FPS_RANGE, chooseSkyflowAnim, readSkyflowVisual, skyflowFrame, type AnimName } from '../config/animation';
+import { ANIMS, FRAME_H, FRAME_W, ROLL_VISUAL, RUN_FPS_RANGE, readSkyflowVisual, skyflowFrame, type AnimName } from '../config/animation';
 import type { Presentation } from '../config/presentation';
 import type { LevelData, TerrainDef } from '../level/types';
 import type { World, WorldEvent } from '../sim/World';
@@ -8,8 +8,11 @@ import { createParallax, createSky, createWindMesh, placeParallax, type Parallax
 import { VIEW_H, VIEW_W, type CameraRig } from './CameraRig';
 import { buildCharacter, type CharacterId } from './characters';
 import { Particles } from './Particles';
-import { hex, Pix } from './pixel';
+import { Pix } from './pixel';
 import * as art from './props';
+import { Bursts } from './Bursts';
+import { CLOUD, PLATES } from './palette';
+import { chooseAnim, PresentationSignals, type MotionSignals } from './signals';
 
 // Three.js is only the renderer here: it draws the simulation's state at a
 // 480×270 virtual resolution into a render target, then upscales that by
@@ -27,8 +30,10 @@ const ORDER = {
   hazard: 13,
   collectible: 14,
   ring: 15,
+  shadow: 11.5,
   npc: 18,
   afterimage: 19,
+  burst: 19.5,
   player: 20,
   particles: 21,
   bubble: 22,
@@ -111,8 +116,6 @@ export function drawCurvedTerrain(def: TerrainDef, tileX0: number, tileX1: numbe
   // Analytic extrema include a crest higher than either authored knot.
   const top = Math.ceil(bounds.y + bounds.h);
   const pix = new Pix(width, Math.max(1, top - bottom));
-  const P = art.PAL;
-  const stone = [P.rockL, P.rock, P.rockD];
   for (let col = 0; col < width; col++) {
     const worldX = x + col + 0.5;
     if (worldX < tileX0 || worldX > tileX1) continue;
@@ -120,20 +123,10 @@ export function drawCurvedTerrain(def: TerrainDef, tileX0: number, tileX1: numbe
     if (!sample) continue;
     const surfaceRow = top - Math.round(sample.y);
     const thickness = def.kind === 'cloud' ? 15 + Math.round(3 * Math.sin(worldX * 0.22 + def.id)) : pix.h - surfaceRow;
+    // Same material language as drawIsland / drawCloud (Skyprint Folklore).
     for (let depth = 0; depth < thickness; depth++) {
-      let color: string;
-      if (def.kind === 'cloud') color = depth < 2 ? P.cloudTop : depth < 6 ? P.cloud : depth < 10 ? P.cloudS1 : P.cloudS2;
-      else if (depth < 2) color = P.grassL;
-      else if (depth < 5) color = P.grass;
-      else if (depth < 8 + ((Math.floor(worldX) * 7 + def.id) & 3)) color = P.grassD;
-      else {
-        const cell = Math.abs(Math.floor(worldX / 11) * 17 + Math.floor((sample.y - depth) / 9) * 7 + def.id);
-        color = depth > pix.h - surfaceRow - 15 ? P.mist : stone[cell % stone.length];
-      }
-      if (def.recovery && def.kind === 'cloud') {
-        const rgba = hex(color);
-        pix.px(col, surfaceRow + depth, [Math.round(rgba[0] * 0.85), Math.round(rgba[1] * 0.85), Math.round(rgba[2] * 0.93), 255]);
-      } else pix.px(col, surfaceRow + depth, color);
+      const color = art.terrainMaterial(def.kind, depth, thickness, worldX, sample.y - depth, def.id, !!def.recovery);
+      if (color) pix.px(col, surfaceRow + depth, color);
     }
   }
   return { pix, x, bottom };
@@ -149,6 +142,13 @@ export class GameRenderer {
   private sky = createSky();
   private layers: ParallaxLayer[] = createParallax();
   readonly particles = new Particles();
+  private signals = new PresentationSignals();
+  private bursts!: Bursts;
+  /** Landing shadow: where the player will touch down (sizes 0..3, near → far). */
+  private shadow!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private shadowTex: THREE.Texture[] = [];
+  /** A second, out-of-register impression of the live sprite at speed. */
+  private regGhost!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   private texCache = new Map<string, THREE.Texture>();
   private matCache = new Map<THREE.Texture, THREE.MeshBasicMaterial>();
   private geoCache = new Map<string, THREE.PlaneGeometry>();
@@ -199,6 +199,8 @@ export class GameRenderer {
   private scale = 1;
   private viewport = { x: 0, y: 0, w: VIEW_W, h: VIEW_H };
   private wakeTimer = 0;
+  private paradeRingTimer = 0;
+  private lastReveal = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     THREE.ColorManagement.enabled = false;
@@ -219,6 +221,13 @@ export class GameRenderer {
     this.scene.add(this.sky);
     for (const l of this.layers) this.scene.add(l.mesh);
     this.scene.add(this.particles.points);
+    this.bursts = new Bursts(this.scene, ORDER.burst);
+    this.shadowTex = [14, 11, 8, 5].map((w, i) => shadowPix(w, i).toTexture());
+    this.shadow = new THREE.Mesh(this.geo(16, 3, 'bc'), new THREE.MeshBasicMaterial({ map: this.shadowTex[0], transparent: true, depthTest: false, depthWrite: false }));
+    this.shadow.renderOrder = ORDER.shadow;
+    this.shadow.frustumCulled = false;
+    this.shadow.visible = false;
+    this.scene.add(this.shadow);
     this.resize();
   }
 
@@ -324,7 +333,7 @@ export class GameRenderer {
     for (const r of level.rings) this.ringMeshes.push(this.place(this.sprite(this.ringTex.armed[0], 'c', r.x, r.y, ORDER.ring), r.x - 10, r.x + 10));
 
     for (const wz of level.winds) {
-      const m = createWindMesh(wz.w, wz.h);
+      const m = createWindMesh(wz.w, wz.h, wz.dir);
       m.position.set(wz.x, wz.y, 0);
       m.renderOrder = ORDER.wind;
       m.frustumCulled = false;
@@ -439,6 +448,22 @@ export class GameRenderer {
       this.scene.add(mesh);
       this.afterimages.push({ mesh, life: 0 });
     }
+    this.regGhost = new THREE.Mesh(
+      this.geo(FRAME_W, FRAME_H, 'bc'),
+      new THREE.ShaderMaterial({
+        vertexShader: BASIC_VERT,
+        fragmentShader: AFTERIMAGE_FRAG,
+        transparent: true,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        uniforms: { map: { value: null }, uTint: { value: new THREE.Color(PLATES[1]) }, uAlpha: { value: 0.5 } },
+      }),
+    );
+    this.regGhost.renderOrder = ORDER.afterimage;
+    this.regGhost.visible = false;
+    this.regGhost.frustumCulled = false;
+    this.scene.add(this.regGhost);
     for (const n of level.npcs) {
       const m = new THREE.Mesh(this.geo(FRAME_W, FRAME_H, 'bc'), new THREE.MeshBasicMaterial({ transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide }));
       m.position.set(n.x, n.y, 0);
@@ -487,6 +512,7 @@ export class GameRenderer {
     P.scale = pres.particles;
     const w = this.world;
     const poppy = this.character === 'poppy';
+    this.signals.ingest(events, w);
     for (const e of events) {
       switch (e.type) {
         case 'curl':
@@ -523,10 +549,12 @@ export class GameRenderer {
           break;
         }
         case 'jump':
+          this.bursts.spawn('jump', e.x, e.y);
           P.emit('dust', e.x, e.y + 1, 5, 0, 1);
           P.emit(poppy ? 'spore' : 'droplet', e.x, e.y + 8, 3);
           break;
         case 'land':
+          this.bursts.spawn(e.impact > w.player.cfg.maxFall * 0.75 ? 'landHard' : 'land', e.x, e.y);
           for (const platform of w.level.platforms) {
             if (platform.kind === 'cloud' && Math.abs(platform.top - e.y) < 0.5 && e.x >= platform.x0 - 5 && e.x <= platform.x1 + 5) {
               this.cloudReactions[platform.id].age = 0;
@@ -539,14 +567,17 @@ export class GameRenderer {
           if (!poppy && e.impact > 200) P.emit('droplet', e.x, e.y + 10, 4);
           break;
         case 'dash':
+          this.bursts.spawn('dash', e.x - e.dir * 14, e.y + 11, e.dir);
           P.emit('dust', e.x, e.y + 11, 8, -e.dir, 0);
           P.emit(poppy ? 'petal' : 'droplet', e.x, e.y + 12, 6, -e.dir, 0);
           break;
         case 'skim':
+          this.bursts.spawn('jump', e.x, e.y);
           P.emit('wake', e.x, e.y + 2, 6, -w.player.facing, 0.25);
           P.emit('dew', e.x, e.y + 3, 4, 0, 1);
           break;
         case 'spring':
+          this.bursts.spawn('spring', w.springs[e.spring]?.x ?? e.x, (w.springs[e.spring]?.top ?? e.y) + 4);
           P.emit(poppy ? 'petal' : 'droplet', e.x, e.y, e.boosted ? 12 : 7, 0, 1);
           P.emit('sparkle', e.x, e.y, e.boosted ? 8 : 3, 0, 1);
           break;
@@ -557,12 +588,14 @@ export class GameRenderer {
           P.emit('dust', e.x, e.y + 1, 4, w.player.facing, 0);
           break;
         case 'ring':
+          this.bursts.spawn('ring', e.x, e.y);
           P.emit('dew', e.x, e.y, 14);
           break;
         case 'seed':
           P.emit('gold', e.x, e.y, 4);
           break;
         case 'fragment':
+          this.bursts.spawn('fragment', e.x, e.y);
           P.emit('sparkle', e.x, e.y, 20);
           P.emit('confetti', e.x, e.y, 12);
           break;
@@ -570,6 +603,7 @@ export class GameRenderer {
           P.emit('sparkle', e.x, e.y, 14);
           break;
         case 'checkpoint':
+          this.bursts.spawn('checkpoint', e.x, e.y + 21);
           P.emit('petal', e.x, e.y + 14, 10, 0, 1);
           break;
         case 'death':
@@ -600,7 +634,10 @@ export class GameRenderer {
   }
 
   clearTransient(): void {
+    this.lastReveal = 0;
     this.particles.clear();
+    this.bursts.clear();
+    this.signals.reset();
     this.wakeTimerStep = 0;
     for (const pulse of this.surfacePulses) { pulse.life = 0; pulse.mesh.visible = false; }
     for (const reaction of this.cloudReactions) if (reaction) { reaction.age = 99; reaction.mesh.scale.y = 1; }
@@ -630,6 +667,7 @@ export class GameRenderer {
     const bloom = w.bloom.visual;
     const paradeI = parade.intensity;
     this.particles.scale = pres.particles;
+    const sig = this.signals.update(w, dt);
 
     // Camera (integer pixels; shake is cosmetic and optional).
     let cx = Math.round(camera.prevX + (camera.x - camera.prevX) * alpha);
@@ -655,6 +693,10 @@ export class GameRenderer {
     u.uDim.value = parade.anticipation * 0.12 * pres.spectacle;
     u.uFlower.value.set(this.level.parade.flower.x - cx + VIEW_W / 2, this.level.parade.flower.y - cy + VIEW_H / 2);
     u.uCam.value.set(cx, cy);
+    // Flow energy and mood are shared with the parallax strips (same uniform objects).
+    if (u.uEnergy) u.uEnergy.value = sig.energy * pres.spectacle;
+    if (u.uMood) u.uMood.value = sig.mood;
+    if (u.uReveal) u.uReveal.value = sig.parade.reveal;
     placeParallax(this.layers, cx, cy, 160);
 
     // Cull by x.
@@ -742,6 +784,7 @@ export class GameRenderer {
       this.particles.emit('sparkle', this.level.parade.flower.x + Math.cos(a) * 30, this.level.parade.flower.y + Math.sin(a) * 30, 1, -Math.cos(a), -Math.sin(a));
     }
     if (parade.state === 'active' && Math.abs(parade.t - 1.5) < dt) this.shake = Math.max(this.shake, 0.5 * pres.shake);
+    this.paradeChoreography(sig, dt, cx, cy, pres);
     const ba = parade.bridgeAlpha;
     for (const { mesh, def } of this.terrainMeshes) {
       if (!def.parade) continue;
@@ -775,7 +818,7 @@ export class GameRenderer {
     for (const m of this.npcMeshes) (m.material as THREE.MeshBasicMaterial).map = this.npcFrames.get(npcFrame) ?? null;
 
     // Player.
-    this.updatePlayer(input, dt, bloom);
+    this.updatePlayer(input, dt, bloom, sig);
 
     // Bubbles.
     for (const b of this.bubbles) {
@@ -785,6 +828,8 @@ export class GameRenderer {
     this.bubbles = this.bubbles.filter((b) => b.life > 0);
 
     this.particles.update(dt);
+    this.bursts.enabled = pres.particles > 0;
+    this.bursts.update(dt);
 
     // Draw low-res, then upscale.
     this.renderer.setRenderTarget(this.target);
@@ -804,42 +849,52 @@ export class GameRenderer {
     this.renderer.autoClear = true;
   }
 
-  private chooseAnim(w: World): AnimName {
-    const p = w.player;
-    if (w.dead) return 'fail';
-    if (w.complete) return p.grounded ? 'cheer' : 'fall';
-    const roll = chooseSkyflowAnim(readSkyflowVisual(p));
-    if (roll) return roll;
-    if (p.dashing) return 'dash';
-    if (!p.grounded) {
-      if (p.sinceLand < 0.025 && p.vy > 0) return 'land';
-      if (p.sinceSkim < 0.09 && p.vy > 0) return 'rebound';
-      if (p.ascent === 'spring' && p.vy > 120) return 'rebound';
-      if (p.ascent === 'jump' && p.airTime < 0.035) return 'launch';
-      if (p.vy > 70) return 'jump';
-      if (p.vy > -70) return 'apex';
-      return 'fall';
+  /**
+   * The Petal Parade as staged music: the reveal strikes a great ring out of
+   * the flower, the peak keeps time with slower rings and a drifting petal
+   * shower, and the release thins to a few petals in the afterglow.
+   */
+  private paradeChoreography(sig: MotionSignals, dt: number, cx: number, cy: number, pres: Presentation): void {
+    const pr = sig.parade;
+    const f = this.level.parade.flower;
+    if (pr.reveal > 0 && this.lastReveal === 0 && pr.active) {
+      this.bursts.spawn('bloomRing', f.x, f.y);
+      this.particles.emit('confetti', f.x, f.y, 24);
     }
-    if (p.sinceLand < 0.08) return 'land';
-    if (p.braking) return 'brake';
-    if (Math.abs(p.vx) > 12) return p.groundTime < 0.1 && Math.abs(p.vx) < p.cfg.runSpeed * 0.5 ? 'start' : 'run';
-    return 'idle';
+    this.lastReveal = pr.reveal;
+    if (!pr.active) {
+      this.paradeRingTimer = 0;
+      return;
+    }
+    if (pr.reveal >= 1 && pr.intensity > 0.8) {
+      this.paradeRingTimer -= dt;
+      if (this.paradeRingTimer <= 0) {
+        this.paradeRingTimer = 1.6;
+        this.bursts.spawn('bloomRing', f.x, f.y);
+      }
+    }
+    // Petal shower across the top of the view, thinning as the parade releases.
+    const rate = pr.intensity * 14 * pres.particles * pres.spectacle;
+    if (Math.random() < rate * dt) {
+      const x = cx - VIEW_W / 2 + Math.random() * VIEW_W;
+      this.particles.emit('shower', x, cy + VIEW_H / 2 + 4, 1, 0.5, -1);
+    }
   }
 
-  private updatePlayer(input: RenderInput, dt: number, bloom: number): void {
+  private updatePlayer(input: RenderInput, dt: number, bloom: number, sig: MotionSignals): void {
     const w = input.world;
     const p = w.player;
     const visual = readSkyflowVisual(p);
     const m = this.player;
     m.visible = input.showPlayer && !(w.dead && w.deadTimer < 0.4);
-    const name = this.chooseAnim(w);
+    const name = chooseAnim(sig);
     if (name !== this.anim.name) this.anim = { name, t: 0 };
     let fps = ANIMS[name].fps;
     if (name === 'run') {
-      const k = Math.abs(p.vx) / p.cfg.runSpeed;
+      const k = sig.speed;
       fps = Math.min(RUN_FPS_RANGE[1], Math.max(RUN_FPS_RANGE[0], ANIMS.run.fps * k));
     }
-    if (name === 'fall' && p.vy < -240) fps = 12;
+    if (name === 'fall' && sig.rise < -0.8) fps = 12; // flail faster in a steep fall
     const frameTime = this.anim.t;
     this.anim.t += dt * fps;
     const def = ANIMS[name];
@@ -852,35 +907,74 @@ export class GameRenderer {
     m.position.set(x, y, 0);
     m.scale.x = p.facing;
 
-    // Afterimages trail behind the live sprite.
-    const feedbackSpeed = visual.rolling && p.grounded ? visual.speed : Math.abs(p.vx);
-    const fast = feedbackSpeed > p.cfg.runSpeed * 1.15;
-    const want = input.pres.afterimages && m.visible && (p.dashing || fast);
+    // Print stamps: the sprite re-pressed in single plate colours along the path.
+    // Momentum alone earns stamps (movement-branch intent); a singing sky prints them denser.
+    const fast = sig.speed > 1.15;
+    const singing = sig.mood >= 1.6;
+    const want = input.pres.afterimages && m.visible && (sig.dashing || fast);
     this.afterTimer -= dt;
+    if (sig.dashStarted) this.afterTimer = 0;
     if (want && this.afterTimer <= 0) {
-      this.afterTimer = p.dashing ? 0.03 : 0.07;
+      this.afterTimer = sig.dashing ? 0.035 : singing ? 0.08 : 0.11;
       const slot = this.afterimages.reduce((a, b) => (a.life < b.life ? a : b));
-      const tints = ['#ff9fd0', '#9ff0d0', '#ffe27a', '#b9a8ff'];
-      slot.life = 0.24;
+      slot.life = sig.dashing ? 0.26 : 0.2;
       slot.mesh.material.uniforms.map.value = tex;
-      slot.mesh.material.uniforms.uTint.value.set(tints[this.afterColor++ % tints.length]);
+      slot.mesh.material.uniforms.uTint.value.set(PLATES[this.afterColor++ % PLATES.length]);
       slot.mesh.position.set(x, y, 0);
       slot.mesh.scale.x = p.facing;
     }
     for (const a of this.afterimages) {
       a.life -= dt;
       a.mesh.visible = a.life > 0 && input.pres.afterimages && m.visible;
-      if (a.life > 0) a.mesh.material.uniforms.uAlpha.value = Math.min(0.75, (a.life / 0.24) * 0.9);
+      if (a.life > 0) a.mesh.material.uniforms.uAlpha.value = Math.min(0.75, (a.life / 0.26) * 0.9);
     }
+
+    // Misregistration: a mint plate printed 2 px behind the live sprite at full flow.
+    const reg = input.pres.afterimages && m.visible && (sig.dashing || (singing && sig.energy > 0.55));
+    this.regGhost.visible = reg;
+    if (reg) {
+      const u = this.regGhost.material.uniforms;
+      u.map.value = tex;
+      u.uTint.value.set(sig.dashing ? PLATES[1] : PLATES[0]);
+      u.uAlpha.value = sig.dashing ? 0.75 : 0.5;
+      this.regGhost.position.set(x - p.facing * 2, y + (sig.dashing ? 0 : 1), 0);
+      this.regGhost.scale.x = p.facing;
+    }
+
+    // Landing shadow: a soft carved dot on whatever surface is directly below,
+    // shrinking with height — a read of where the jump will come down.
+    this.updateShadow(w, x, y, m.visible && !w.dead);
 
     // Petal wake / spores at high Bloom while running.
     this.wakeTimerStep -= dt;
     if (m.visible && fast && this.wakeTimerStep <= 0) {
-      this.wakeTimerStep = 0.12 - Math.min(1, feedbackSpeed / p.cfg.maxHorizontalSpeed) * 0.025 - bloom * 0.025;
+      this.wakeTimerStep = 0.12 - Math.min(1, (sig.speed * p.cfg.runSpeed) / p.cfg.maxHorizontalSpeed) * 0.025 - bloom * 0.025;
       const kind = visual.rolling && p.braking ? 'dust' : this.character === 'poppy' ? 'wake' : 'droplet';
       const travel = Math.sign(p.vx) || p.facing;
       this.particles.emit(kind, p.x - travel * 6, p.y + 2, 1, -travel, 0.3);
     }
+    // Singing: loose notes lift off the player now and then.
+    if (m.visible && singing && sig.energy > 0.4 && Math.random() < 0.08 * input.pres.particles) {
+      this.particles.emit('note', p.x - p.facing * 4, p.y + 18, 1, -p.facing * 0.3, 1);
+    }
+  }
+
+  private updateShadow(w: World, x: number, y: number, show: boolean): void {
+    const sh = this.shadow;
+    sh.visible = false;
+    if (!show) return;
+    let best = -Infinity;
+    for (const s of w.solids) {
+      if (!s.active || x < s.x || x > s.x + s.w) continue;
+      const top = s.y + s.h;
+      if (top <= y + 0.5 && top > best) best = top;
+    }
+    const h = y - best;
+    if (best === -Infinity || h > 150) return;
+    const size = h < 6 ? 0 : h < 40 ? 1 : h < 90 ? 2 : 3;
+    sh.material.map = this.shadowTex[size];
+    sh.position.set(x, Math.round(best) - 3, 0);
+    sh.visible = true;
   }
 
   // ── sizing ───────────────────────────────────────────────────────────
@@ -916,4 +1010,20 @@ export class GameRenderer {
     ctx.drawImage(src, 0, 0, cv.width, cv.height);
     return cv;
   }
+}
+
+/** A dithered carved-shadow ellipse (never solid, so it can't read as a surface). */
+function shadowPix(w: number, size: number): Pix {
+  const p = new Pix(16, 3);
+  const rx = w / 2;
+  for (let y = 0; y < 3; y++) {
+    for (let x = 0; x < 16; x++) {
+      const dx = (x + 0.5 - 8) / rx;
+      const dy = (y + 0.5 - 1.5) / 1.5;
+      if (dx * dx + dy * dy > 1) continue;
+      const solid = dx * dx + dy * dy < 0.35 && size < 2;
+      if (solid || (x + y) % 2 === 0) p.px(x, y, CLOUD.groove);
+    }
+  }
+  return p;
 }

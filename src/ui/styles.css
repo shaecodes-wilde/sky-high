@@ -1,13 +1,32 @@
+/* Skyprint Folklore UI — cream paper cards, carved-block buttons, and colour
+   plates printed a pixel or two out of register. Colours mirror
+   src/render/palette.ts; ornament sprites come from src/ui/ornaments.ts as
+   CSS custom properties. Every size is in --u (one virtual pixel). */
+
 :root {
-  --ink: #3b2d5c;
-  --ink-soft: #6a5a8e;
-  --paper: #fff8f0;
-  --paper-2: #f4ecff;
-  --rose: #ff8fc6;
-  --butter: #ffd447;
-  --mint: #8ff0cc;
-  --lav: #b9a7e6;
+  --ink: #2b1d3a;
+  --ink-plum: #3d2a55;
+  --ink-soft: #5a4378;
+  --ink-line: #4b3870;
+  --paper: #fff6e9;
+  --paper-white: #fffdf8;
+  --paper-butter: #ffeccc;
+  --paper-warm: #f6dcc4;
+  --cloud-hi: #e4d6f6;
+  --cloud-light: #cdb9ee;
+  --coral: #e8484f;
+  --coral-hi: #ff7f73;
+  --gold: #ffd75e;
+  --gold-hi: #fff3b0;
+  --gold-lo: #e39a2c;
+  --mint: #8ff0cf;
+  --mint-lo: #3fc4a6;
+  --mint-deep: #1f6f63;
+  --petal: #ff9fcf;
+  --petal-deep: #a33a72;
   --u: 1px; /* one virtual pixel, set from the game's integer scale */
+  --serif: 'Palatino Linotype', 'Book Antiqua', Palatino, 'URW Palladio L', Georgia, serif;
+  --sans: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
 }
 
 .movement-dev {
@@ -31,10 +50,13 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: #1b1430;
   overflow: hidden;
-  font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--sans);
   color: var(--ink);
+  /* The letterbox is the press bed: plum ink with a faint halftone. */
+  background: var(--ink) var(--orn-dots-bed, none) repeat;
+  background-size: 8px 8px;
+  image-rendering: pixelated;
 }
 
 #app {
@@ -65,30 +87,77 @@ body {
   justify-content: center;
 }
 
+/* ── Paper cards ─────────────────────────────────────────────────────────── */
+
 .panel {
+  position: relative;
   pointer-events: auto;
-  background: var(--paper);
+  background:
+    var(--orn-dots-paper, none) repeat,
+    var(--paper);
+  background-size: calc(var(--u) * 4) calc(var(--u) * 4), auto;
   border: calc(var(--u) * 1.5) solid var(--ink);
+  /* Two colour plates printed out of register behind the key. */
   box-shadow:
-    calc(var(--u) * 3) calc(var(--u) * 3) 0 rgba(59, 45, 92, 0.55),
-    inset 0 0 0 calc(var(--u) * 1.5) #ffe9f4;
-  outline: calc(var(--u) * 0.75) dashed var(--rose);
-  outline-offset: calc(var(--u) * -4.5);
-  padding: calc(var(--u) * 10) calc(var(--u) * 12);
+    calc(var(--u) * -2) calc(var(--u) * -2) 0 var(--mint),
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 var(--coral-hi),
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 calc(var(--u) * 1.5) var(--ink);
+  padding: calc(var(--u) * 11) calc(var(--u) * 14) calc(var(--u) * 10);
   max-width: calc(var(--u) * 400);
-  max-height: calc(var(--u) * 250);
+  max-height: calc(var(--u) * 246);
   overflow: auto;
   text-align: center;
+  animation: press-in 0.18s steps(3);
+}
+
+/* Registration marks in the corners: the printer's ⊕. */
+.panel::before,
+.panel::after {
+  content: '';
+  position: absolute;
+  width: calc(var(--u) * 9);
+  height: calc(var(--u) * 9);
+  background: var(--orn-reg-soft, none) center / 100% 100% no-repeat;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.panel::before {
+  top: calc(var(--u) * 3);
+  left: calc(var(--u) * 3);
+}
+
+.panel::after {
+  bottom: calc(var(--u) * 3);
+  right: calc(var(--u) * 3);
 }
 
 .panel h1,
 .panel h2 {
   margin: 0 0 calc(var(--u) * 5);
-  letter-spacing: 0.04em;
+  font-family: var(--serif);
+  letter-spacing: 0.02em;
 }
 
 .panel h2 {
-  font-size: 1.6em;
+  font-size: 1.65em;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 5);
+}
+
+/* Unfurling curls flank every heading. */
+.panel h2::before,
+.panel h2::after {
+  content: '';
+  flex: none;
+  width: calc(var(--u) * 26);
+  height: calc(var(--u) * 11);
+  background: var(--orn-curl-r, none) center / 100% 100% no-repeat;
+}
+
+.panel h2::after {
+  background-image: var(--orn-curl-l, none);
 }
 
 .panel p {
@@ -101,79 +170,137 @@ body {
   font-size: 0.85em;
 }
 
+/* ── Title ───────────────────────────────────────────────────────────────── */
+
 .title {
   background: transparent;
   border: none;
   box-shadow: none;
-  outline: none;
   max-width: none;
+  max-height: none;
+  overflow: visible;
 }
 
-.logo {
-  font-size: 4.2em;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  color: #fff;
-  text-shadow:
-    calc(var(--u) * 1) 0 0 var(--ink),
-    calc(var(--u) * -1) 0 0 var(--ink),
-    0 calc(var(--u) * 1) 0 var(--ink),
-    0 calc(var(--u) * -1) 0 var(--ink),
-    calc(var(--u) * 2) calc(var(--u) * 3) 0 var(--rose),
-    calc(var(--u) * 3) calc(var(--u) * 4) 0 var(--ink);
-  line-height: 1;
+.title::before,
+.title::after {
+  display: none;
+}
+
+.wordmark {
+  position: relative;
+  margin: 0 auto;
+  /* 1.5× the pixel grid: grand on the title without leaving the frame. */
+  transform: scale(1.5);
+  transform-origin: 50% 0;
+  margin-bottom: calc(var(--u) * 30);
+}
+
+.wordmark canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* The plates breathe slightly out of register, like a press still settling. */
+.wordmark .mint {
+  transform: translate(calc(var(--u) * -1), calc(var(--u) * -1));
+  animation: plate-mint 5s steps(1) infinite;
+}
+
+.wordmark .coral {
+  transform: translate(calc(var(--u) * 1), calc(var(--u) * 1));
+  animation: plate-coral 5s steps(1) infinite;
 }
 
 .subtitle {
-  font-size: 1.5em;
+  display: inline-block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.6em;
   font-weight: 700;
   color: var(--ink);
-  margin-top: calc(var(--u) * 4);
-  text-shadow: 0 calc(var(--u) * 1) 0 #fff;
+  background: var(--paper);
+  border: calc(var(--u) * 1) solid var(--ink);
+  box-shadow: calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--gold);
+  padding: calc(var(--u) * 1) calc(var(--u) * 9);
 }
 
 .tag {
-  display: inline-block;
-  margin-top: calc(var(--u) * 3);
+  display: block;
+  width: fit-content;
+  margin: calc(var(--u) * 5) auto 0;
   font-size: 0.8em;
   color: var(--ink-soft);
-  background: rgba(255, 248, 240, 0.7);
+  background: rgba(255, 246, 233, 0.75);
   padding: calc(var(--u) * 1) calc(var(--u) * 4);
 }
 
+/* ── Carved-block buttons ────────────────────────────────────────────────── */
+
 button {
+  position: relative;
   font: inherit;
   font-weight: 700;
   color: var(--ink);
-  background: var(--paper-2);
+  background: var(--paper-white);
   border: calc(var(--u) * 1) solid var(--ink);
-  box-shadow: 0 calc(var(--u) * 1.5) 0 var(--ink);
+  /* The block's depth: an ink edge under the face. */
+  box-shadow: 0 calc(var(--u) * 2) 0 var(--ink);
   padding: calc(var(--u) * 3) calc(var(--u) * 8);
   margin: calc(var(--u) * 2);
   cursor: pointer;
   pointer-events: auto;
+  transition:
+    transform 0.08s steps(2),
+    background-color 0.08s steps(2);
 }
 
-button:hover,
-button:focus-visible,
-button.selected {
-  background: var(--butter);
-  outline: none;
-}
-
-button:focus-visible {
+button:hover {
+  background: var(--gold-hi);
   box-shadow:
-    0 calc(var(--u) * 1.5) 0 var(--ink),
-    0 0 0 calc(var(--u) * 1.5) var(--rose);
+    0 calc(var(--u) * 2) 0 var(--ink),
+    calc(var(--u) * 2) calc(var(--u) * 3) 0 var(--gold);
+}
+
+button.selected {
+  background: var(--mint);
+  box-shadow:
+    0 calc(var(--u) * 2) 0 var(--ink),
+    calc(var(--u) * -2) calc(var(--u) * 3) 0 var(--mint-lo);
 }
 
 button.big {
-  font-size: 1.4em;
+  font-size: 1.35em;
   padding: calc(var(--u) * 4) calc(var(--u) * 14);
+  background: var(--gold);
+}
+
+button.big:hover {
+  background: var(--gold-hi);
+}
+
+/* Keyboard focus: a coral plate ring plus a bud pointer — never colour alone. */
+button:focus-visible,
+.char:focus-visible {
+  outline: calc(var(--u) * 1.5) solid var(--coral);
+  outline-offset: calc(var(--u) * 2);
+}
+
+button:focus-visible::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--u) * -11);
+  top: 50%;
+  width: calc(var(--u) * 7);
+  height: calc(var(--u) * 7);
+  margin-top: calc(var(--u) * -3.5);
+  background: var(--orn-bud, none) center / 100% 100% no-repeat;
 }
 
 button:active {
-  transform: translateY(calc(var(--u) * 1));
+  transform: translateY(calc(var(--u) * 1.5));
   box-shadow: 0 calc(var(--u) * 0.5) 0 var(--ink);
 }
 
@@ -186,34 +313,80 @@ button:active {
 }
 
 .opt-label {
-  font-weight: 800;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 1.1em;
   margin-top: calc(var(--u) * 6);
+}
+
+/* ── Character select: storybook plates ─────────────────────────────────── */
+
+.select-head {
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 1.7em;
+  color: var(--paper);
+  margin: 0 0 calc(var(--u) * 9);
+  text-shadow:
+    0 calc(var(--u) * 1) 0 var(--ink),
+    calc(var(--u) * 1) 0 0 var(--ink),
+    calc(var(--u) * -1) 0 0 var(--ink),
+    0 calc(var(--u) * -1) 0 var(--ink),
+    calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--coral-hi);
+}
+
+.select-note {
+  text-align: center;
+  color: var(--paper);
+  font-size: 0.9em;
+  text-shadow:
+    0 calc(var(--u) * 1) 0 var(--ink),
+    calc(var(--u) * 1) 0 0 var(--ink),
+    calc(var(--u) * -1) 0 0 var(--ink),
+    0 calc(var(--u) * -1) 0 var(--ink);
 }
 
 .chars {
   display: flex;
-  gap: calc(var(--u) * 10);
+  gap: calc(var(--u) * 12);
   justify-content: center;
   align-items: stretch;
 }
 
 .char {
+  position: relative;
   pointer-events: auto;
   width: calc(var(--u) * 150);
-  padding: calc(var(--u) * 6);
-  background: var(--paper);
+  padding: calc(var(--u) * 7) calc(var(--u) * 7) calc(var(--u) * 6);
+  background:
+    var(--orn-dots-paper, none) repeat,
+    var(--paper);
+  background-size: calc(var(--u) * 4) calc(var(--u) * 4), auto;
   border: calc(var(--u) * 1.5) solid var(--ink);
-  box-shadow: calc(var(--u) * 3) calc(var(--u) * 3) 0 rgba(59, 45, 92, 0.55);
+  box-shadow: calc(var(--u) * 3) calc(var(--u) * 3) 0 var(--ink-plum);
   cursor: pointer;
   text-align: center;
   transition: transform 0.12s steps(2);
 }
 
 .char.selected {
-  background: #fff3c4;
-  transform: translateY(calc(var(--u) * -4));
-  outline: calc(var(--u) * 1) dashed var(--rose);
-  outline-offset: calc(var(--u) * -4);
+  background-color: var(--paper-white);
+  transform: translateY(calc(var(--u) * -5));
+  box-shadow:
+    calc(var(--u) * -2) calc(var(--u) * -2) 0 var(--mint),
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 var(--coral-hi),
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 calc(var(--u) * 1.5) var(--ink);
+}
+
+/* A gold ⊕ in the selected card's corner. */
+.char.selected::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--u) * 4);
+  right: calc(var(--u) * 4);
+  width: calc(var(--u) * 9);
+  height: calc(var(--u) * 9);
+  background: var(--orn-reg, none) center / 100% 100% no-repeat;
 }
 
 .char canvas {
@@ -222,24 +395,35 @@ button:active {
   height: calc(var(--u) * 96);
   display: block;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* The hero stands on a little carved cloud lip. */
+.char .lip {
+  width: calc(var(--u) * 72);
+  height: calc(var(--u) * 16);
+  margin: calc(var(--u) * -9) auto 0;
+  background: var(--orn-cloud-lip, none) center / 100% 100% no-repeat;
 }
 
 .char h3 {
-  margin: calc(var(--u) * 3) 0;
-  font-size: 1.3em;
+  margin: calc(var(--u) * 3) 0 calc(var(--u) * 2);
+  font-family: var(--serif);
+  font-size: 1.4em;
 }
 
 .char .line {
+  font-family: var(--serif);
   font-style: italic;
   color: var(--ink-soft);
 }
 
 .cloudbed {
-  width: calc(var(--u) * 340);
-  height: calc(var(--u) * 14);
-  margin: calc(var(--u) * -6) auto 0;
-  background: radial-gradient(ellipse at 50% 0, #fff 0 45%, #e9e0ff 46% 70%, transparent 71%);
+  display: none;
 }
+
+/* ── Settings ────────────────────────────────────────────────────────────── */
 
 .settings-grid {
   display: grid;
@@ -250,10 +434,29 @@ button:active {
   margin: calc(var(--u) * 4) 0;
 }
 
+.settings-grid label {
+  font-weight: 700;
+}
+
 input[type='range'] {
   pointer-events: auto;
   width: 100%;
-  accent-color: #e25a9c;
+  accent-color: var(--coral);
+}
+
+input[type='range']:focus-visible {
+  outline: calc(var(--u) * 1.5) solid var(--coral);
+  outline-offset: calc(var(--u) * 2);
+}
+
+/* ── Results ─────────────────────────────────────────────────────────────── */
+
+.complete {
+  box-shadow:
+    calc(var(--u) * -2) calc(var(--u) * -2) 0 var(--mint),
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 var(--gold),
+    calc(var(--u) * 3) calc(var(--u) * 3) 0 calc(var(--u) * 1.5) var(--ink),
+    0 0 0 calc(var(--u) * 6) rgba(255, 215, 94, 0.35);
 }
 
 table.splits {
@@ -265,21 +468,27 @@ table.splits {
 table.splits td {
   padding: calc(var(--u) * 0.5) calc(var(--u) * 6);
   text-align: right;
+  border-bottom: calc(var(--u) * 0.5) dashed var(--cloud-light);
 }
 
 table.splits td:first-child {
   text-align: left;
+  font-family: var(--serif);
 }
 
+/* Ahead/behind also differ by sign (−/+) in the text, not just hue. */
 .ahead {
-  color: #2f9a6a;
+  color: var(--mint-deep);
+  font-weight: 800;
 }
 
 .behind {
-  color: #c0406e;
+  color: var(--petal-deep);
+  font-weight: 800;
 }
 
-/* HUD — restrained, small, at the edges. */
+/* ── HUD — restrained, at the edges, legible over any sky ───────────────── */
+
 .hud {
   position: absolute;
   inset: 0;
@@ -291,10 +500,15 @@ table.splits td:first-child {
 .hud .chip {
   position: absolute;
   top: calc(var(--u) * 5);
-  background: rgba(255, 248, 240, 0.82);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 5);
+  background: var(--paper);
   border: calc(var(--u) * 1) solid var(--ink);
-  padding: calc(var(--u) * 1) calc(var(--u) * 4);
+  box-shadow: calc(var(--u) * 2) calc(var(--u) * 2) 0 rgba(43, 29, 58, 0.55);
+  padding: calc(var(--u) * 2) calc(var(--u) * 5);
   font-size: 1.05em;
+  line-height: 1;
 }
 
 .hud .left {
@@ -303,13 +517,68 @@ table.splits td:first-child {
 
 .hud .right {
   right: calc(var(--u) * 5);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(var(--u) * 1);
   text-align: right;
 }
 
 .hud .practice {
   display: block;
   font-size: 0.75em;
-  color: #c0406e;
+  color: var(--petal-deep);
+}
+
+.hud .practice:empty {
+  display: none;
+}
+
+.hud .notes,
+.hud .seeds {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 1);
+}
+
+.pip {
+  display: inline-block;
+  flex: none;
+  image-rendering: pixelated;
+  background: center / 100% 100% no-repeat;
+}
+
+.pip.note {
+  width: calc(var(--u) * 8);
+  height: calc(var(--u) * 11);
+  background-image: var(--orn-note-off, none);
+}
+
+.pip.note.on {
+  background-image: var(--orn-note-on, none);
+}
+
+.pip.seed {
+  width: calc(var(--u) * 9);
+  height: calc(var(--u) * 9);
+  background-image: var(--orn-seed, none);
+}
+
+.pip.bloom {
+  width: calc(var(--u) * 13);
+  height: calc(var(--u) * 11);
+  background-image: var(--orn-bloom-0, none);
+}
+
+.pip.bloom[data-tier='1'] {
+  background-image: var(--orn-bloom-1, none);
+}
+
+.pip.bloom[data-tier='2'] {
+  background-image: var(--orn-bloom-2, none);
+}
+
+.pip.bloom.pulse {
+  animation: bloom-pulse 0.5s steps(4);
 }
 
 .toast {
@@ -317,9 +586,12 @@ table.splits td:first-child {
   top: calc(var(--u) * 26);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(255, 248, 240, 0.92);
+  background: var(--paper);
   border: calc(var(--u) * 1) solid var(--ink);
-  padding: calc(var(--u) * 2) calc(var(--u) * 7);
+  box-shadow:
+    calc(var(--u) * -1) calc(var(--u) * -1) 0 var(--mint),
+    calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--coral-hi);
+  padding: calc(var(--u) * 2) calc(var(--u) * 8);
   font-weight: 800;
   white-space: nowrap;
   animation: toast-in 0.2s steps(3);
@@ -330,14 +602,17 @@ table.splits td:first-child {
   bottom: calc(var(--u) * 14);
   left: 50%;
   transform: translateX(-50%);
-  color: #fff;
-  font-weight: 800;
-  font-size: 1.2em;
+  color: var(--paper);
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.35em;
   text-shadow:
     0 calc(var(--u) * 1) 0 var(--ink),
     calc(var(--u) * 1) 0 0 var(--ink),
     calc(var(--u) * -1) 0 0 var(--ink),
-    0 calc(var(--u) * -1) 0 var(--ink);
+    0 calc(var(--u) * -1) 0 var(--ink),
+    calc(var(--u) * 2) calc(var(--u) * 2) 0 var(--ink-plum);
   white-space: nowrap;
   transition: opacity 0.8s;
 }
@@ -354,22 +629,67 @@ table.splits td:first-child {
   font-size: 0.85em;
   color: var(--ink-soft);
   margin-top: calc(var(--u) * 6);
+  line-height: 1.6;
+}
+
+.title .keys {
+  display: block;
+  width: fit-content;
+  margin: calc(var(--u) * 6) auto 0;
+  background: rgba(255, 246, 233, 0.75);
+  padding: calc(var(--u) * 1) calc(var(--u) * 4);
 }
 
 kbd {
   display: inline-block;
   font: inherit;
   font-weight: 800;
-  background: var(--paper-2);
+  background: var(--paper-white);
   border: calc(var(--u) * 0.75) solid var(--ink-soft);
+  box-shadow: 0 calc(var(--u) * 1) 0 var(--ink-soft);
   padding: 0 calc(var(--u) * 2);
   margin: 0 calc(var(--u) * 0.5);
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────── */
+
+@keyframes press-in {
+  from {
+    transform: translateY(calc(var(--u) * -4));
+    opacity: 0.4;
+  }
 }
 
 @keyframes toast-in {
   from {
     transform: translate(-50%, calc(var(--u) * -6));
     opacity: 0;
+  }
+}
+
+@keyframes bloom-pulse {
+  50% {
+    transform: scale(1.5);
+  }
+}
+
+@keyframes plate-mint {
+  0%,
+  100% {
+    transform: translate(calc(var(--u) * -1), calc(var(--u) * -1));
+  }
+  50% {
+    transform: translate(calc(var(--u) * -1), 0);
+  }
+}
+
+@keyframes plate-coral {
+  0%,
+  100% {
+    transform: translate(calc(var(--u) * 1), calc(var(--u) * 1));
+  }
+  50% {
+    transform: translate(calc(var(--u) * 1), 0);
   }
 }
 
@@ -389,8 +709,13 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .panel,
   .toast,
-  .char {
+  .char,
+  button,
+  .pip.bloom.pulse,
+  .wordmark .mint,
+  .wordmark .coral {
     animation: none;
     transition: none;
   }

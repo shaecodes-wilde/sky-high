@@ -3,7 +3,7 @@ import { ANIMS, FRAME_H, FRAME_NAMES, FRAME_W, ROLL_VISUAL, chooseSkyflowAnim, r
 import { MOVEMENT, SIM_DT } from '../src/config/movement';
 import { PRESETS } from '../src/config/presentation';
 import type { TerrainDef } from '../src/level/types';
-import { buildCharacter } from '../src/render/characters';
+import { buildCharacter, ROLL_KEY_COLOURS } from '../src/render/characters';
 import { drawCurvedTerrain } from '../src/render/GameRenderer';
 import { Particles } from '../src/render/Particles';
 import type { Pix } from '../src/render/pixel';
@@ -141,17 +141,20 @@ describe('replaceable compact character art', () => {
     });
   }
   it('retains Poppy cap spots/braid and Puddlewick hat/duck/monocle/moustache at quarter turns', () => {
+    // Identity colours come from the art module, so a palette change keeps the contract.
+    const rgb = (c: string) => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)].join(',');
+    const K = ROLL_KEY_COLOURS;
     const poppy = buildCharacter('poppy');
     const puddlewick = buildCharacter('puddlewick');
     for (const phase of [0, 4, 8, 12]) {
       const pc = colors(poppy.frames.get(`roll${phase}`)!);
-      expect(pc.has('255,246,234')).toBe(true); // mushroom spots
-      expect(pc.has('122,74,44') || pc.has('79,46,28')).toBe(true); // braid
+      expect(pc.has(rgb(K.poppy.spots)), `poppy spots @${phase}`).toBe(true);
+      expect(K.poppy.braid.some((c) => pc.has(rgb(c))), `poppy braid @${phase}`).toBe(true);
       const sc = colors(puddlewick.frames.get(`roll${phase}`)!);
-      expect(sc.has('47,36,51')).toBe(true); // hat
-      expect(sc.has('255,210,60')).toBe(true); // duck
-      expect(sc.has('245,197,66')).toBe(true); // monocle
-      expect(sc.has('91,58,38')).toBe(true); // moustache
+      expect(sc.has(rgb(K.puddlewick.hat)), `hat @${phase}`).toBe(true);
+      expect(sc.has(rgb(K.puddlewick.duck)), `duck @${phase}`).toBe(true);
+      expect(sc.has(rgb(K.puddlewick.monocle)), `monocle @${phase}`).toBe(true);
+      expect(sc.has(rgb(K.puddlewick.moustache)), `moustache @${phase}`).toBe(true);
     }
   });
 });

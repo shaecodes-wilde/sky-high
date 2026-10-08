@@ -355,6 +355,7 @@ export class Game {
     this.devPanel?.update();
     if (this.state === 'playing' || this.state === 'paused') {
       this.ui.updateHud(this.settings.mode, this.world.fragmentsTaken.filter(Boolean).length, this.seedsTaken, this.world.complete ? this.world.completeTime : this.world.time, this.practice);
+      this.ui.setBloom(this.world.bloom.tier); // presentation only
     }
   }
 

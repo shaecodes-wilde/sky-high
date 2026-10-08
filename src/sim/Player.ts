@@ -271,6 +271,13 @@ export class Player {
       }
     }
     this.vx = Math.max(-c.maxHorizontalSpeed, Math.min(c.maxHorizontalSpeed, this.vx));
+    if (this.grounded && this.rolling && this.surface) {
+      // Wind also acts after rolling acceleration. Apply the same surface
+      // speed bound after every force, before crest release converts it to
+      // a complete world-space takeoff vector.
+      const horizontalCap = c.maxHorizontalSpeed * this.surface.tangent.x;
+      this.vx = Math.max(-horizontalCap, Math.min(horizontalCap, this.vx));
+    }
 
     // --- vertical --------------------------------------------------------
     let g: number;

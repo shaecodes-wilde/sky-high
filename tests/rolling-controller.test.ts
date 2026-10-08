@@ -266,6 +266,50 @@ describe('real tangent traversal and takeoff', () => {
     expect(p.dashCharges).toBe(0);
   });
 
+  it('strong wind cannot bypass the finite surface speed cap at a real crest launch', () => {
+    const def: TerrainDef = { id: 907, kind: 'island', bottom: -40, knots: [{ x: 0, y: 0, slope: 1 }, { x: 100, y: 0, slope: -1 }] };
+    const solid = terrainToSolid(def);
+    const p = on(solid, 35, 250);
+    const wind = { x: -100, y: -100, w: 400, h: 500, dir: 1 as const, speed: 300, accel: 10000 };
+    p.step(SIM_DT, input({ rollHeld: true, move: 1 }), [solid], [wind]);
+    expect(p.grounded).toBe(false);
+    expect(p.events.some((e) => e.type === 'launch')).toBe(true);
+    expect(p.events.some((e) => e.type === 'wall')).toBe(false);
+    expect(Number.isFinite(p.vx) && Number.isFinite(p.vy)).toBe(true);
+    expect(Math.hypot(p.vx, p.vy)).toBeLessThanOrEqual(300.0000001);
+    expect(p.vx).toBeGreaterThan(290);
+    expect(p.vy).toBeGreaterThan(0);
+    expect(blocked([solid], p.x, p.y, p.w, p.h)).toBe(false);
+  });
+
+  it('ordinary uphill wind still supplies its bounded drive below the surface cap', () => {
+    const def: TerrainDef = { id: 908, kind: 'island', bottom: -40, knots: [{ x: -120, y: 0, slope: 0.5 }, { x: 120, y: 120, slope: 0.5 }] };
+    const solid = terrainToSolid(def);
+    const assisted = on(solid, -50, 100);
+    const unassisted = on(solid, -50, 100);
+    const wind = { x: -100, y: -100, w: 400, h: 500, dir: 1 as const, speed: 160, accel: 300 };
+    const command = input({ rollHeld: true });
+    assisted.step(SIM_DT, command, [solid], [wind]);
+    unassisted.step(SIM_DT, command, [solid], []);
+    expect(assisted.grounded).toBe(true);
+    expect(assisted.vx - unassisted.vx).toBeCloseTo(5, 7);
+    expect(assisted.x).toBeGreaterThan(unassisted.x);
+    expect(assisted.vx / assisted.surface!.tangent.x).toBeLessThan(300);
+    expect(assisted.events.some((e) => e.type === 'wall')).toBe(false);
+    expect(blocked([solid], assisted.x, assisted.y, assisted.w, assisted.h)).toBe(false);
+  });
+
+  it('airborne wind retains the existing horizontal cap and falling gravity', () => {
+    const p = makePlayer(0, 1000);
+    p.grounded = false;
+    const wind = { x: -100, y: 900, w: 400, h: 500, dir: 1 as const, speed: 1000, accel: 100000 };
+    p.step(SIM_DT, input({ rollHeld: true }), [], [wind]);
+    expect(p.grounded).toBe(false);
+    expect(p.vx).toBe(300);
+    expect(p.vy).toBeCloseTo(-MOVEMENT.gravityDown * SIM_DT, 7);
+    expect(p.surface).toBeNull();
+  });
+
   it.each([[-1, 'island'], [1, 'island'], [-1, 'cloud'], [1, 'cloud']] as const)('a descending dash lands uphill in direction %s on curved %s without losing horizontal momentum', (dir, kind) => {
     const def: TerrainDef = { id: 905, kind, bottom: -40, knots: [{ x: -120, y: dir > 0 ? 0 : 120, slope: dir * 0.5 }, { x: 120, y: dir > 0 ? 120 : 0, slope: dir * 0.5 }] };
     const solid = terrainToSolid(def);

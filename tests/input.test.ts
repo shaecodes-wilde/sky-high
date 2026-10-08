@@ -69,6 +69,28 @@ describe('double-tap dash', () => {
     inp.reset();
     expect(inp.sample(true, 1, 200).move).toBe(0);
   });
+
+  it('uses physical press timestamps when a valid second tap is queued in a slow frame', () => {
+    const inp = make();
+    inp.press('KeyD', 'right', 0);
+    inp.release('KeyD', 'right', 50);
+    inp.sample(true, 1, 60);
+    inp.press('KeyD', 'right', 210);
+    expect(inp.sample(true, 1, 240).dash).toBe(1);
+  });
+
+  it('a fast direction change starts a new tap sequence instead of dashing on a turn back', () => {
+    const inp = make();
+    inp.press('KeyD', 'right', 0);
+    inp.release('KeyD', 'right', 40);
+    inp.press('KeyA', 'left', 60);
+    inp.release('KeyA', 'left', 80);
+    inp.press('KeyD', 'right', 100);
+    expect(inp.sample(true, 1, 110).dash).toBe(0);
+    inp.release('KeyD', 'right', 120);
+    inp.press('KeyD', 'right', 160);
+    expect(inp.sample(true, 1, 170).dash).toBe(1);
+  });
 });
 
 describe('other input', () => {
@@ -101,5 +123,31 @@ describe('other input', () => {
     expect(inp.sample(false, 1, 11).move).toBe(1);
     inp.release('KeyD', 'right', 20);
     expect(inp.sample(false, 1, 21).move).toBe(-1);
+  });
+
+  it('keeps the dash press direction when movement changes later in the same batch', () => {
+    const inp = make();
+    inp.press('KeyA', 'left', 0);
+    inp.press('ShiftLeft', 'dash', 10);
+    inp.press('KeyD', 'right', 12);
+    const frame = inp.sample(true, 1, 16);
+    expect(frame.dash).toBe(-1);
+    expect(frame.move).toBe(1);
+  });
+
+  it('holding the dash action, including its alternate binding, never repeats a command', () => {
+    const inp = make();
+    inp.press('ShiftLeft', 'dash', 0);
+    expect(inp.sample(true, 1, 1).dash).toBe(1);
+    inp.press('ShiftLeft', 'dash', 10);
+    inp.press('ShiftRight', 'dash', 12);
+    for (let t = 16; t < 500; t += 16) expect(inp.sample(true, 1, t).dash).toBe(0);
+    inp.release('ShiftLeft', 'dash', 500);
+    inp.press('ShiftLeft', 'dash', 501);
+    expect(inp.sample(true, 1, 502).dash).toBe(0);
+    inp.release('ShiftLeft', 'dash', 510);
+    inp.release('ShiftRight', 'dash', 511);
+    inp.press('ShiftRight', 'dash', 520);
+    expect(inp.sample(true, -1, 521).dash).toBe(-1);
   });
 });

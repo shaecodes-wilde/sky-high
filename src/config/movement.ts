@@ -3,7 +3,7 @@
 // MOVEMENT_RULES_VERSION whenever a change could affect run times so that
 // local records stay comparable.
 
-export const MOVEMENT_RULES_VERSION = 1;
+export const MOVEMENT_RULES_VERSION = 2;
 
 export interface MovementConfig {
   /** Collision box (decorative hats/braids/floaties are not included). */
@@ -46,7 +46,7 @@ export interface MovementConfig {
   /** Multipliers applied to vertical speed when a dash starts (never adds upward speed). */
   dashRiseDamping: number;
   dashFallDamping: number;
-  /** A dedicated dash press made while grounded waits this long for takeoff. */
+  /** A fresh dash command waits this long for takeoff, a refill or dash expiry. */
   dashPressBuffer: number;
 
   maxHorizontalSpeed: number;
@@ -69,13 +69,13 @@ export const MOVEMENT: MovementConfig = {
   groundAccel: 640, // ≈0.21 s from standstill to run speed
   groundBrake: 1500,
   groundFriction: 1100,
-  groundOverspeedDecay: 150,
+  groundOverspeedDecay: 60,
   groundOverspeedFriction: 520,
 
   airAccel: 520,
   airBrake: 820,
-  airFriction: 140,
-  airOverspeedDecay: 45,
+  airFriction: 25,
+  airOverspeedDecay: 30,
 
   gravityUp: 880,
   jumpCutMultiplier: 2.6,

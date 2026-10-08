@@ -125,8 +125,9 @@ export class Input {
   sample(airborne: boolean, facing: Dir, now: number): InputFrame {
     let jumpPressed = false;
     let dash: -1 | 0 | 1 = 0;
-    // Expire a stale first tap.
-    if (this.tap && now - this.tap.t > this.doubleTapMs) this.tap = null;
+    // Compare press timestamps while processing the queue. Expiring against
+    // render time first could discard a timely second tap queued during a
+    // slow frame, even though both physical presses were inside the window.
     for (const ev of this.queue) {
       if (ev.down) this.procHeld.add(ev.code);
       else this.procHeld.delete(ev.code);
@@ -139,7 +140,7 @@ export class Input {
           this.dirOrder.push(dir);
           if (otherKeysHeld) continue; // not a fresh press of this direction
           const tap = this.tap;
-          if (tap && tap.dir === dir && tap.released && ev.t - tap.t <= this.doubleTapMs) {
+          if (tap && tap.dir === dir && tap.released && ev.t >= tap.t && ev.t - tap.t <= this.doubleTapMs) {
             this.tap = null;
             if (airborne) {
               dash = dir;
@@ -161,11 +162,15 @@ export class Input {
           this.jumpHeld = false;
         }
       } else if (ev.action === 'dash' && ev.down) {
+        // Both Shift keys are one logical button. Pressing its other binding
+        // while already held is not a fresh command.
+        if (this.bindings.dash.some((c) => c !== ev.code && this.procHeld.has(c))) continue;
         const held = this.dirOrder[this.dirOrder.length - 1];
         dash = held ?? facing;
       }
     }
     this.queue.length = 0;
+    if (this.tap && now - this.tap.t > this.doubleTapMs) this.tap = null;
     const move = (this.dirOrder[this.dirOrder.length - 1] ?? 0) as -1 | 0 | 1;
     return { move, jumpHeld: this.jumpHeld, jumpPressed, dash };
   }

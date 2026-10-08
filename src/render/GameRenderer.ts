@@ -829,6 +829,7 @@ export class GameRenderer {
   private updatePlayer(input: RenderInput, dt: number, bloom: number): void {
     const w = input.world;
     const p = w.player;
+    const visual = readSkyflowVisual(p);
     const m = this.player;
     m.visible = input.showPlayer && !(w.dead && w.deadTimer < 0.4);
     const name = this.chooseAnim(w);
@@ -843,7 +844,7 @@ export class GameRenderer {
     this.anim.t += dt * fps;
     const def = ANIMS[name];
     const idx = def.loop ? Math.floor(frameTime) % def.frames.length : Math.min(def.frames.length - 1, Math.floor(frameTime));
-    const frameName = skyflowFrame(name, readSkyflowVisual(p), p.facing) ?? def.frames[idx];
+    const frameName = skyflowFrame(name, visual, p.facing) ?? def.frames[idx];
     const tex = this.playerFrames.get(frameName) ?? null;
     (m.material as THREE.MeshBasicMaterial).map = tex;
     const x = Math.round(p.prevX + (p.x - p.prevX) * input.alpha);
@@ -852,7 +853,8 @@ export class GameRenderer {
     m.scale.x = p.facing;
 
     // Afterimages trail behind the live sprite.
-    const fast = Math.abs(p.vx) > p.cfg.runSpeed * 1.15;
+    const feedbackSpeed = visual.rolling && p.grounded ? visual.speed : Math.abs(p.vx);
+    const fast = feedbackSpeed > p.cfg.runSpeed * 1.15;
     const want = input.pres.afterimages && m.visible && (p.dashing || fast);
     this.afterTimer -= dt;
     if (want && this.afterTimer <= 0) {
@@ -874,9 +876,8 @@ export class GameRenderer {
     // Petal wake / spores at high Bloom while running.
     this.wakeTimerStep -= dt;
     if (m.visible && fast && this.wakeTimerStep <= 0) {
-      this.wakeTimerStep = 0.12 - Math.min(1, Math.abs(p.vx) / p.cfg.maxHorizontalSpeed) * 0.025 - bloom * 0.025;
-      const rolling = readSkyflowVisual(p).rolling;
-      const kind = rolling && p.braking ? 'dust' : this.character === 'poppy' ? 'wake' : 'droplet';
+      this.wakeTimerStep = 0.12 - Math.min(1, feedbackSpeed / p.cfg.maxHorizontalSpeed) * 0.025 - bloom * 0.025;
+      const kind = visual.rolling && p.braking ? 'dust' : this.character === 'poppy' ? 'wake' : 'droplet';
       const travel = Math.sign(p.vx) || p.facing;
       this.particles.emit(kind, p.x - travel * 6, p.y + 2, 1, -travel, 0.3);
     }

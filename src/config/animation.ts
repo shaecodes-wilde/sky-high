@@ -104,6 +104,7 @@ export interface SkyflowVisualSource {
   readonly sinceUncurl?: number;
   readonly sincePump?: number;
   readonly pumpResult?: 'none' | 'good' | 'perfect';
+  readonly surface?: { readonly tangent: { readonly x: number } } | null;
 }
 
 export interface SkyflowVisualState {
@@ -120,6 +121,13 @@ export interface SkyflowVisualState {
 }
 
 export function readSkyflowVisual(p: SkyflowVisualSource): SkyflowVisualState {
+  // The controller stores grounded slope motion in vx with vy=0. Recover the
+  // actual along-surface speed from its contact rather than mistaking the
+  // smaller horizontal component for slower traversal.
+  const tangentX = p.surface?.tangent.x;
+  const speed = p.rolling && p.grounded && tangentX !== undefined && tangentX > 0
+    ? Math.abs(p.vx / tangentX)
+    : Math.hypot(p.vx, p.grounded ? p.vy : 0);
   return {
     rolling: p.rolling ?? false,
     angle: p.rollAngle ?? 0,
@@ -127,7 +135,7 @@ export function readSkyflowVisual(p: SkyflowVisualSource): SkyflowVisualState {
     uncurlAge: p.sinceUncurl ?? 99,
     pumpAge: p.sincePump ?? 99,
     pumpResult: p.pumpResult ?? 'none',
-    speed: Math.hypot(p.vx, p.grounded ? p.vy : 0),
+    speed,
     grounded: p.grounded,
     braking: p.braking,
     landAge: p.sinceLand,

@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ANIMS, FRAME_H, FRAME_NAMES, FRAME_W, ROLL_VISUAL, chooseSkyflowAnim, readSkyflowVisual, rollFrameIndex, skyflowFrame, type SkyflowVisualSource } from '../src/config/animation';
+import { MOVEMENT, SIM_DT } from '../src/config/movement';
 import { PRESETS } from '../src/config/presentation';
 import type { TerrainDef } from '../src/level/types';
 import { buildCharacter } from '../src/render/characters';
 import { drawCurvedTerrain } from '../src/render/GameRenderer';
 import { Particles } from '../src/render/Particles';
 import type { Pix } from '../src/render/pixel';
-import { sampleTerrain } from '../src/sim/terrain';
+import { Player } from '../src/sim/Player';
+import { sampleTerrain, terrainSupport, terrainToSolid } from '../src/sim/terrain';
 
 const source = (patch: Partial<SkyflowVisualSource> = {}): SkyflowVisualSource => ({
   vx: 132, vy: 0, grounded: true, braking: false, sinceLand: 99,
@@ -72,6 +74,46 @@ describe('read-only Skyflow presentation', () => {
     const before = JSON.stringify(p);
     for (const _preset of Object.values(PRESETS)) skyflowFrame('rollPump', readSkyflowVisual(p), 1);
     expect(JSON.stringify(p)).toBe(before);
+  });
+
+  it.each([1, 2, -1, -2])('reads a real 225 px/s tangent traversal on slope %i as fast under both characters and every preset', (slope) => {
+    const def: TerrainDef = {
+      id: 950, kind: 'island', bottom: -1100,
+      knots: [{ x: -500, y: -500 * slope, slope }, { x: 500, y: 500 * slope, slope }],
+    };
+    const solid = terrainToSolid(def);
+    // Isolate presentation classification from acceleration while using the
+    // production Player, actual grounded contact, hitbox and roll transitions.
+    const p = new Player({ ...MOVEMENT, rollAccel: 0, rollGravity: 0, rollResistance: 0 });
+    p.reset(0, terrainSupport(def, -p.w / 2, p.w / 2)!.y);
+    p.grounded = true;
+    p.vx = 225 * sampleTerrain(def, 0)!.tangent.x;
+    for (let i = 0; i < 12; i++) p.step(SIM_DT, { move: 1, jumpHeld: false, jumpPressed: false, dash: 0, rollHeld: true }, [solid], []);
+    expect(p.grounded).toBe(true);
+    expect(p.rolling).toBe(true);
+    expect(p.vy).toBe(0);
+    expect(Math.abs(p.vx)).toBeLessThan(210); // horizontal alone selects the wrong atlas
+    const before = JSON.stringify(p);
+    for (const id of ['poppy', 'puddlewick'] as const) for (const _preset of Object.values(PRESETS)) {
+      const visual = readSkyflowVisual(p);
+      expect(visual.speed).toBeCloseTo(225, 9);
+      const selected = chooseSkyflowAnim(visual)!;
+      expect(selected).toBe('rollFast');
+      const frame = skyflowFrame(selected, visual, p.facing)!;
+      expect(buildCharacter(id).frames.has(frame)).toBe(true);
+    }
+    expect(JSON.stringify(p)).toBe(before);
+  });
+
+  it('preserves legacy flat and airborne presentation instead of using a stale contact or vertical fall to create trails', () => {
+    expect(readSkyflowVisual(source({ vx: 225, surface: null })).speed).toBe(225);
+    const contact = { tangent: { x: 0.5 } };
+    const upright = readSkyflowVisual(source({ vx: 132, rolling: false, surface: contact }));
+    expect(upright.speed).toBe(132);
+    expect(chooseSkyflowAnim(upright)).toBeNull();
+    const aerial = readSkyflowVisual(source({ vx: 132, vy: -300, grounded: false, surface: contact }));
+    expect(aerial.speed).toBe(132);
+    expect(chooseSkyflowAnim(aerial)).toBe('rollJump');
   });
 });
 

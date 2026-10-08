@@ -30,6 +30,11 @@ export interface Body {
   h: number;
 }
 
+/** Bodies may expose dimensions through prototype getters (not own fields). */
+function bodyAt(b: Body, x: number, y = b.y): Body {
+  return { x, y, w: b.w, h: b.h };
+}
+
 const EPS = 1e-4;
 
 export function top(s: Solid): number {
@@ -122,7 +127,7 @@ export function sweepX(solids: readonly Solid[], b: Body, dx: number, ledgeNudge
   }
   if (hit && ledgeNudge > 0) {
     // Clipping the very top of a ledge: step up onto it if that space is free.
-    const height = support(hit, { ...b, x: b.x + dx })?.y ?? top(hit);
+    const height = support(hit, bodyAt(b, b.x + dx))?.y ?? top(hit);
     const rise = height - b.y;
     if (rise > 0 && rise <= ledgeNudge && !blocked(solids, b.x + dx, height, b.w, b.h) && !blocked(solids, b.x, height, b.w, b.h)) {
       b.y = height;
@@ -262,11 +267,11 @@ export function moveGrounded(solids: readonly Solid[], b: Body, dx: number, spee
   while (Math.abs(remaining) > 1e-12) {
     if (allowLaunch && losesNormalForce(contact, speed, gravity)) return leaveSurface(solids, b, remaining, contact);
     let step = Math.sign(remaining) * Math.min(Math.abs(remaining), maxStep);
-    let next = continuedSupport(solids, { ...b, x: b.x + step }, contact);
+    let next = continuedSupport(solids, bodyAt(b, b.x + step), contact);
     // Keep vertical sampling equally fine on steep authored terrain.
     for (let n = 0; next && Math.abs(next.y - b.y) > maxStep && n < 16; n++) {
       step *= 0.5;
-      next = continuedSupport(solids, { ...b, x: b.x + step }, contact);
+      next = continuedSupport(solids, bodyAt(b, b.x + step), contact);
     }
     if (!next) return leaveSurface(solids, b, remaining, contact);
     if (blocked(solids, b.x + step, next.y, b.w, b.h)) {
@@ -275,11 +280,11 @@ export function moveGrounded(solids: readonly Solid[], b: Body, dx: number, spee
       let high = 1;
       for (let n = 0; n < 32; n++) {
         const fraction = (low + high) / 2;
-        const probe = continuedSupport(solids, { ...b, x: b.x + step * fraction }, contact);
+        const probe = continuedSupport(solids, bodyAt(b, b.x + step * fraction), contact);
         if (probe && !blocked(solids, b.x + step * fraction, probe.y, b.w, b.h)) low = fraction;
         else high = fraction;
       }
-      const boundary = continuedSupport(solids, { ...b, x: b.x + step * low }, contact)!;
+      const boundary = continuedSupport(solids, bodyAt(b, b.x + step * low), contact)!;
       const obstacle = solids.find((s) => blocked([s], b.x + step, next!.y, b.w, b.h)) ?? null;
       b.x += step * low;
       b.y = boundary.y;

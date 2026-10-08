@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TerrainDef } from '../src/level/types';
 import { blocked, groundUnder, moveGrounded, surfaceContact, sweepX, sweepY, type Body, type Solid } from '../src/sim/collision';
 import { sampleTerrain, terrainAboveIntervals, terrainSupport, terrainToSolid, terrainValleys } from '../src/sim/terrain';
-import { box } from './helpers';
+import { box, makePlayer } from './helpers';
 
 const body = (x: number, y: number, w = 10, h = 22): Body => ({ x, y, w, h });
 const ramp = (kind: TerrainDef['kind'] = 'island'): TerrainDef => ({
@@ -185,6 +185,36 @@ describe('curve collision and feet anchoring', () => {
 });
 
 describe('grounded connectivity and physical launches', () => {
+  it('traverses flat-to-curve geometry with the actual Player dimensions getters', () => {
+    const incline = terrainToSolid(ramp());
+    const left = box(-100, -60, 100, 60);
+    const right = box(100, -60, 100, 110);
+    const solids = [left, incline, right];
+    const player = makePlayer(-20, 0);
+    expect(Object.hasOwn(player, 'w')).toBe(false);
+    const up = moveGrounded(solids, player, 150, 225, 1250, false);
+    expect(up.hit).toBeNull();
+    expect(up.separated).toBe(false);
+    expect(player.x).toBe(130);
+    expect(player.y).toBe(50);
+    const down = moveGrounded(solids, player, -150, -225, 1250, false);
+    expect(down.hit).toBeNull();
+    expect(down.separated).toBe(false);
+    expect(player.x).toBe(-20);
+    expect(player.y).toBe(0);
+  });
+
+  it('resolves a thin curved-route wall against the actual Player getter hitbox', () => {
+    const incline = terrainToSolid(ramp());
+    const wall = box(60, -60, 0.1, 150);
+    const player = makePlayer(20, 12.5);
+    const result = moveGrounded([incline, wall], player, 70, 300, 1250, true);
+    expect(result.hit).toBe(wall);
+    expect(result.separated).toBe(false);
+    expect(player.x + player.w / 2).toBeLessThanOrEqual(60.00011);
+    expect(blocked([incline, wall], player.x, player.y, player.w, player.h)).toBe(false);
+  });
+
   it('follows a bowl in both directions without a speed-producing impulse', () => {
     const solid = terrainToSolid(bowl());
     const b = on(solid, 10);

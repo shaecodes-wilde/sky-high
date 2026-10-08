@@ -212,6 +212,30 @@ describe('real tangent traversal and takeoff', () => {
     expect(p.rollAngle).toBeGreaterThan(10);
   });
 
+  it.each([225, 300])('curling with horizontal speed %s on a steep ramp respects the vector cap', (horizontalSpeed) => {
+    const def: TerrainDef = { id: 903, kind: 'island', bottom: -40, knots: [{ x: -120, y: 0, slope: 1 }, { x: 120, y: 240, slope: 1 }] };
+    const solid = terrainToSolid(def);
+    const p = on(solid, -50, 0, isolated);
+    p.vx = horizontalSpeed;
+    p.step(SIM_DT, input({ rollHeld: true, move: 1 }), [solid], []);
+    expect(p.grounded).toBe(true);
+    expect(p.events.some((e) => e.type === 'wall')).toBe(false);
+    expect(Number.isFinite(p.vx)).toBe(true);
+    expect(p.vx / p.surface!.tangent.x).toBeCloseTo(300, 7);
+    expect(p.vx).toBeCloseTo(300 / Math.sqrt(2), 7);
+    expect(blocked([solid], p.x, p.y, p.w, p.h)).toBe(false);
+  });
+
+  it('ordinary dash speed remains unchanged through curl on a moderate slope', () => {
+    const def: TerrainDef = { id: 904, kind: 'island', bottom: -40, knots: [{ x: -120, y: 0, slope: 0.5 }, { x: 120, y: 120, slope: 0.5 }] };
+    const solid = terrainToSolid(def);
+    const p = on(solid, -50, 0, isolated);
+    p.vx = 225;
+    p.step(SIM_DT, input({ rollHeld: true, move: 1 }), [solid], []);
+    expect(p.vx).toBeCloseTo(225, 7);
+    expect(p.events.some((e) => e.type === 'wall')).toBe(false);
+  });
+
   it.each([-1, 1] as const)('roll jump has modest signed slope influence in direction %s', (dir) => {
     const solid = terrainToSolid(bowl());
     const up = on(solid, dir * 70, dir * 225);
@@ -240,6 +264,47 @@ describe('real tangent traversal and takeoff', () => {
     p.step(SIM_DT, input({ rollHeld: true, dash: 1 }), [solid], []);
     expect(p.dashing).toBe(true);
     expect(p.dashCharges).toBe(0);
+  });
+
+  it.each([[-1, 'island'], [1, 'island'], [-1, 'cloud'], [1, 'cloud']] as const)('a descending dash lands uphill in direction %s on curved %s without losing horizontal momentum', (dir, kind) => {
+    const def: TerrainDef = { id: 905, kind, bottom: -40, knots: [{ x: -120, y: dir > 0 ? 0 : 120, slope: dir * 0.5 }, { x: 120, y: dir > 0 ? 120 : 0, slope: dir * 0.5 }] };
+    const solid = terrainToSolid(def);
+    const p = on(solid, 0, 0);
+    p.grounded = false;
+    p.y += 1;
+    p.vx = dir * 225;
+    p.vy = -120;
+    p.step(SIM_DT, input({ rollHeld: true, move: dir, dash: dir }), [solid], []);
+    expect(p.grounded).toBe(true);
+    expect(p.rolling).toBe(true);
+    expect(p.vx).toBe(dir * 225);
+    expect(p.vy).toBe(0);
+    expect(p.dashing).toBe(false);
+    expect(p.dashCharges).toBe(1);
+    expect(p.events.some((e) => e.type === 'wall')).toBe(false);
+    expect(p.events.filter((e) => e.type === 'land')).toHaveLength(1);
+    expect(blocked([solid], p.x, p.y, p.w, p.h)).toBe(false);
+    p.step(SIM_DT, input({ rollHeld: true, move: dir }), [solid], []);
+    expect(p.grounded).toBe(true);
+    expect(Math.abs(p.vx)).toBeGreaterThan(218);
+  });
+
+  it('curved cloud contact resolves a buffered rolling rebound in the same step', () => {
+    const def: TerrainDef = { id: 906, kind: 'cloud', bottom: -40, knots: [{ x: -120, y: 0, slope: 0.5 }, { x: 120, y: 120, slope: 0.5 }] };
+    const solid = terrainToSolid(def);
+    const p = on(solid, 0, 0);
+    p.grounded = false;
+    p.y += 1;
+    p.vx = 225;
+    p.vy = -120;
+    p.dashCharges = 0;
+    p.step(SIM_DT, input({ rollHeld: true, move: 1, jumpPressed: true, jumpHeld: true }), [solid], []);
+    expect(p.events.map((e) => e.type)).toEqual(['curl', 'land', 'jump']);
+    expect(p.grounded).toBe(false);
+    expect(p.vx).toBeGreaterThan(224);
+    expect(p.vy).toBeGreaterThan(302);
+    expect(p.dashCharges).toBe(1);
+    expect(p.surface).toBeNull();
   });
 });
 
@@ -315,6 +380,38 @@ describe('directional valley pumping', () => {
     }
     expect(count).toBe(1);
     expect(p.pumpResult).toBe('perfect');
+  });
+
+  it('a pump remains capped near safety speed and cannot add more than its finite reward', () => {
+    const solid = terrainToSolid(bowl());
+    const p = on(solid, -75, 295, isolated);
+    let count = 0;
+    for (let n = 0; n < 30; n++) {
+      const move = p.x > -12 && p.x < -4 ? 0 : 1;
+      p.step(SIM_DT, input({ rollHeld: true, move }), [solid], []);
+      count += p.events.filter((e) => e.type === 'pump').length;
+      expect(Math.abs(p.vx / p.surface!.tangent.x)).toBeLessThanOrEqual(300.000001);
+    }
+    expect(count).toBe(1);
+    expect(p.vx / p.surface!.tangent.x).toBeCloseTo(300, 7);
+  });
+
+  it('earned pump delivery continues over six steps through a roll jump and active air dash', () => {
+    const solid = terrainToSolid(bowl());
+    const cfg = { ...isolated, dashSpeed: 100, airAccel: 0, airFriction: 0, airOverspeedDecay: 0 };
+    const p = on(solid, -75, 150, cfg);
+    let rewarded = false;
+    for (let n = 0; n < 60 && !rewarded; n++) {
+      const move = p.x > -12 && p.x < -4 ? 0 : 1;
+      p.step(SIM_DT, input({ rollHeld: true, move }), [solid], []);
+      rewarded = p.events.some((e) => e.type === 'pump');
+    }
+    expect(rewarded).toBe(true);
+    const speed = p.vx;
+    for (let n = 0; n < 6; n++) p.step(SIM_DT, input({ rollHeld: true, move: 1, jumpPressed: n === 0, jumpHeld: true, dash: n === 0 ? 1 : 0 }), [solid], []);
+    expect(p.dashing).toBe(true);
+    expect(p.grounded).toBe(false);
+    expect(p.vx).toBeCloseTo(speed + 16, 7);
   });
 
   it.each(['held', 'repeat', 'backward'] as const)('a %s direction cannot manufacture a forward pulse', (kind) => {

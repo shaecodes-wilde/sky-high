@@ -1,5 +1,5 @@
 import type { MovementConfig } from '../config/movement';
-import { blocked, moveGrounded, surfaceContact, sweepX, sweepY, type Solid, type SurfaceContact } from './collision';
+import { blocked, moveGrounded, surfaceContact, sweepAir, sweepX, sweepY, type Solid, type SurfaceContact } from './collision';
 
 /** One fixed-step worth of player intent, produced by the input layer. */
 export interface InputFrame {
@@ -252,6 +252,7 @@ export class Player {
         // press at expiry, without adding a one-step delay or losing its dir.
         if (this.resolveBufferedDash()) this.dashTimer -= dt;
       }
+      this.vx = this.deliverPump(this.vx, dt);
     } else {
       if (this.grounded && this.rolling && this.surface) {
         const speed = this.vx / this.surface.tangent.x;
@@ -301,7 +302,10 @@ export class Player {
     const groundMove = followSurface
       ? moveGrounded(solids, this, this.vx * dt, signedSpeed, this.rolling ? c.rollGravity : c.gravityDown, this.rolling)
       : null;
-    const xr = groundMove ?? sweepX(solids, this, this.vx * dt, this.grounded ? 0 : c.ledgeNudge);
+    const airMove = !this.grounded && !followSurface
+      ? sweepAir(solids, this, this.vx * dt, jumpFromCurve ? 0 : this.vy * dt, c.cornerNudge, c.ledgeNudge)
+      : null;
+    const xr = groundMove ?? (airMove ? { hit: airMove.hitX } : sweepX(solids, this, this.vx * dt, this.grounded ? 0 : c.ledgeNudge));
     if (groundMove?.separated) {
       this.grounded = false;
       this.coyote = c.coyoteTime;
@@ -322,8 +326,8 @@ export class Player {
       this.dashBufferFromGround = false;
       if (this.dashing) this.endDash('wall');
     }
-    if ((!this.grounded || this.vy > 0) && !followSurface && !jumpFromCurve) {
-      const yr = sweepY(solids, this, this.vy * dt, c.cornerNudge);
+    if (airMove || ((!this.grounded || this.vy > 0) && !followSurface && !jumpFromCurve)) {
+      const yr = airMove ? { hit: airMove.hitY, landed: airMove.landed } : sweepY(solids, this, this.vy * dt, c.cornerNudge);
       if (yr.landed && yr.hit) {
         if (yr.hit.kind === 'spring' && yr.hit.spring !== undefined) this.bounce(yr.hit.spring);
         else this.land(fallSpeed, yr.hit.kind);

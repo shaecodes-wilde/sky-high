@@ -287,7 +287,7 @@ export class UI {
       el(
         'div',
         'keys',
-        `<kbd>A</kbd><kbd>D</kbd>/<kbd>←</kbd><kbd>→</kbd> move · <kbd>Space</kbd> jump · tap a direction twice in the air or <kbd>${esc(this.dashLabel)}</kbd> to dash<br><kbd>R</kbd> checkpoint retry · <kbd>Backspace</kbd> full restart · <kbd>M</kbd> mute · <kbd>Esc</kbd> pause`,
+        `<kbd>A</kbd><kbd>D</kbd>/<kbd>←</kbd><kbd>→</kbd> move · hold <kbd>S</kbd>/<kbd>↓</kbd> to curl · <kbd>Space</kbd> jump<br>Coast, then re-press forward near a bowl's bottom to pump · tap twice in the air or <kbd>${esc(this.dashLabel)}</kbd> to dash<br><kbd>R</kbd> checkpoint retry · <kbd>Backspace</kbd> full restart · <kbd>M</kbd> mute · <kbd>Esc</kbd> pause`,
       ),
     );
     if (mode === 'timeTrial') p.append(el('p', 'muted', 'In Time Trial, death, pausing, losing focus, hiding the tab or retrying from a checkpoint moves the attempt to practice. Restart the full run for a clean, recordable attempt.'));

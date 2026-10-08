@@ -4,7 +4,7 @@ import { hex } from './pixel';
 
 // Pooled square-pixel particles in a single draw call. Purely cosmetic.
 
-export type ParticleKind = 'dust' | 'petal' | 'spore' | 'droplet' | 'sparkle' | 'puff' | 'dew' | 'gold' | 'confetti' | 'wake' | 'note' | 'shower';
+export type ParticleKind = 'dust' | 'petal' | 'spore' | 'droplet' | 'sparkle' | 'puff' | 'dew' | 'gold' | 'confetti' | 'wake' | 'note' | 'shower' | 'mint';
 
 interface Spec {
   colors: string[];
@@ -31,6 +31,8 @@ const SPECS: Record<ParticleKind, Spec> = {
   wake: { colors: [ACCENT.petal, ACCENT.gold, ACCENT.mint, PAPER.white], speed: [4, 16], up: 6, gravity: -6, life: [0.5, 0.9], size: [1, 2], drag: 1, spread: Math.PI },
   shower: { colors: [ACCENT.petal, ACCENT.petalHi, ACCENT.petalLo, ACCENT.goldHi], speed: [6, 20], up: 0, gravity: 14, life: [3, 4.5], size: [1, 2], drag: 0.6, spread: Math.PI * 0.35 },
   note: { colors: [ACCENT.goldHi, ACCENT.petalHi, ACCENT.mintHi], speed: [6, 18], up: 14, gravity: -10, life: [0.9, 1.5], size: [1, 2], drag: 1.2, spread: Math.PI * 0.5 },
+  // Cloud Curl pump feedback (movement PR #4), in palette mint.
+  mint: { colors: [ACCENT.mint, ACCENT.mintHi, ACCENT.mintLo], speed: [18, 42], up: 12, gravity: 25, life: [0.18, 0.32], size: [1, 2], drag: 4, spread: Math.PI * 0.6 },
 };
 
 const MAX = 900;
@@ -49,6 +51,7 @@ export class Particles {
   private grav = new Float32Array(MAX);
   private drag = new Float32Array(MAX);
   private next = 0;
+  private remainder: Partial<Record<ParticleKind, number>> = {};
   scale = 1;
 
   constructor() {
@@ -83,7 +86,11 @@ export class Particles {
 
   emit(kind: ParticleKind, x: number, y: number, count: number, dirX = 0, dirY = 0): void {
     const s = SPECS[kind];
-    const n = Math.max(0, Math.round(count * this.scale));
+    // Carry fractional single-particle emissions so Gentle also halves a wake
+    // emitted one pixel at a time. Work remains bounded by the existing pool.
+    const budget = Math.max(0, Math.min(MAX, count * this.scale)) + (this.remainder[kind] ?? 0);
+    const n = Math.floor(budget);
+    this.remainder[kind] = budget - n;
     for (let k = 0; k < n; k++) {
       const i = this.next;
       this.next = (this.next + 1) % MAX;
@@ -111,6 +118,7 @@ export class Particles {
   clear(): void {
     this.life.fill(0);
     this.col.fill(0);
+    this.remainder = {};
   }
 
   update(dt: number): void {

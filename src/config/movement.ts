@@ -3,12 +3,33 @@
 // MOVEMENT_RULES_VERSION whenever a change could affect run times so that
 // local records stay comparable.
 
-export const MOVEMENT_RULES_VERSION = 2;
+export const MOVEMENT_RULES_VERSION = 3;
 
 export interface MovementConfig {
   /** Collision box (decorative hats/braids/floaties are not included). */
   width: number;
   height: number;
+  rollWidth: number;
+  rollHeight: number;
+  /** Signed surface speed; drive stops adding speed above this target. */
+  rollTargetSpeed: number;
+  rollAccel: number;
+  rollBrake: number;
+  rollResistance: number;
+  /** Actual gravity projected onto the surface tangent. */
+  rollGravity: number;
+  rollJumpSlopeInfluence: number;
+  rollJumpMaxInfluence: number;
+  pumpMinSpeed: number;
+  pumpGoodWindow: number;
+  pumpPerfectWindow: number;
+  pumpGoodBonus: number;
+  pumpPerfectBonus: number;
+  pumpDeliveryTime: number;
+  /** Maximum time between a physical release and its matching press. */
+  pumpReleaseWindow: number;
+  /** Must leave the complete valley region by this distance before rearming. */
+  pumpExitMargin: number;
 
   runSpeed: number;
   /** Ground acceleration toward runSpeed while holding a direction. */
@@ -64,6 +85,23 @@ export interface MovementConfig {
 export const MOVEMENT: MovementConfig = {
   width: 10,
   height: 22,
+  rollWidth: 10,
+  rollHeight: 12,
+  rollTargetSpeed: 230,
+  rollAccel: 260,
+  rollBrake: 650,
+  rollResistance: 12,
+  rollGravity: 880,
+  rollJumpSlopeInfluence: 0.35,
+  rollJumpMaxInfluence: 60,
+  pumpMinSpeed: 60,
+  pumpGoodWindow: 0.11,
+  pumpPerfectWindow: 0.05,
+  pumpGoodBonus: 8,
+  pumpPerfectBonus: 16,
+  pumpDeliveryTime: 0.1,
+  pumpReleaseWindow: 0.28,
+  pumpExitMargin: 12,
 
   runSpeed: 132,
   groundAccel: 640, // ≈0.21 s from standstill to run speed

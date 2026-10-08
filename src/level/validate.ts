@@ -4,6 +4,7 @@ import { groundUnder } from '../sim/collision';
 import type { InputFrame } from '../sim/Player';
 import { World } from '../sim/World';
 import type { LevelData, RouteLink, RouteMove } from './types';
+import { traverse, type TraversalInput, type TraversalOptions, type TraversalResult } from './traversal';
 
 /**
  * Rough time for the normal route at plain run speed with simple scripted
@@ -26,8 +27,8 @@ export function estimateRouteTime(level: LevelData, cfg: MovementConfig, links: 
 // Verifies route links by running the real controller in the real level
 // geometry with simple scripted inputs (hold right, jump at a takeoff point,
 // optional dashes at a few timings). A link passes if enough distinct
-// takeoff points succeed — a crude but honest stand-in for "comfortably
-// reachable", rather than guessing gap distances by hand.
+// takeoff points succeed. This is sampled isolated-link reachability, never
+// human comfort evidence or proof that the links form a complete route.
 
 export interface Strategy {
   takeoffX: number;
@@ -204,7 +205,46 @@ export function validateLink(level: LevelData, cfg: MovementConfig, link: RouteL
 export function paradeLead(level: LevelData): number {
   const xs = [
     ...level.platforms.filter((p) => p.parade).map((p) => p.x0),
+    ...(level.terrain ?? []).filter(t => t.parade).map(t => t.knots[0].x),
     ...level.springs.filter((s) => s.parade).map((s) => s.x - 9),
   ];
   return Math.min(...xs) - level.parade.triggerX;
+}
+
+export interface PhraseCriteria {
+  finish?: 'goal' | 'target';
+  minPumps?: number;
+  maxPumps?: number;
+  minSkims?: number;
+  minRings?: number;
+  requireRecovery?: boolean;
+  requireProgression?: boolean;
+  fragments?: number;
+  requireParade?: boolean;
+}
+
+/** Explicit outcome checks over a single production World, never stitched links. */
+export function assessPhrase(result: TraversalResult, cfg: MovementConfig, criteria: PhraseCriteria = {}): string[] {
+  const failures: string[] = [];
+  const count = (type: string) => result.events.filter(e => e.event.type === type).length;
+  if (result.reason !== (criteria.finish ?? 'goal')) failures.push(`ended with ${result.reason}`);
+  if (result.wallHits) failures.push(`${result.wallHits} wall impacts`);
+  if (count('death') || count('respawn')) failures.push('death or respawn interrupts phrase');
+  if (!Number.isFinite(result.final.x) || !Number.isFinite(result.final.y) || !Number.isFinite(result.final.vx) || !Number.isFinite(result.final.vy)) failures.push('non-finite final state');
+  if (result.peakSpeed > cfg.maxHorizontalSpeed + 1e-8) failures.push('horizontal safety cap exceeded');
+  if (criteria.minPumps !== undefined && count('pump') < criteria.minPumps) failures.push('too few pumps');
+  if (criteria.maxPumps !== undefined && count('pump') > criteria.maxPumps) failures.push('too many pumps');
+  if (criteria.minSkims !== undefined && count('skim') < criteria.minSkims) failures.push('too few cloud skims');
+  if (criteria.minRings !== undefined && count('ring') < criteria.minRings) failures.push('too few ring refills');
+  if (criteria.requireRecovery && !result.landings.some(l => l.recovery)) failures.push('no recovery contact');
+  if (criteria.requireProgression && (!result.progressionComplete || !result.progressionValid || result.runInvalidReason !== null)) failures.push('unclean ordered progression');
+  if (criteria.fragments !== undefined && result.fragments !== criteria.fragments) failures.push('fragment count mismatch');
+  if (criteria.requireParade && !result.paradeTriggered) failures.push('Parade never triggered');
+  return failures;
+}
+
+export function validatePhrase(level: LevelData, cfg: MovementConfig, input: TraversalInput, options: TraversalOptions = {}, criteria: PhraseCriteria = {}) {
+  const result = traverse(level, cfg, input, options);
+  const failures = assessPhrase(result, cfg, criteria);
+  return { result, failures, ok: failures.length === 0 };
 }

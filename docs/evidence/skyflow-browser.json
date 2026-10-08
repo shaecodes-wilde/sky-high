@@ -1,0 +1,3613 @@
+{
+  "sections": [
+    {
+      "name": "A · Rolling Basics",
+      "stable": true,
+      "state": {
+        "x": 30,
+        "y": 128,
+        "vx": 0,
+        "vy": 0,
+        "grounded": true,
+        "rolling": false,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 0,
+        "pumpResult": "none"
+      },
+      "dead": false
+    },
+    {
+      "name": "B · Whispering Bowls",
+      "stable": true,
+      "state": {
+        "x": 600,
+        "y": 64.04111540810096,
+        "vx": 0,
+        "vy": 0,
+        "grounded": true,
+        "rolling": false,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 0,
+        "pumpResult": "none"
+      },
+      "dead": false
+    },
+    {
+      "name": "C · Sunthread Ramp",
+      "stable": true,
+      "state": {
+        "x": 1940,
+        "y": 64,
+        "vx": 0,
+        "vy": 0,
+        "grounded": true,
+        "rolling": false,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 0,
+        "pumpResult": "none"
+      },
+      "dead": false
+    },
+    {
+      "name": "D · Dewdrop Crossing",
+      "stable": true,
+      "state": {
+        "x": 2720,
+        "y": 228,
+        "vx": 0,
+        "vy": 0,
+        "grounded": true,
+        "rolling": false,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 0,
+        "pumpResult": "none"
+      },
+      "dead": false
+    },
+    {
+      "name": "E · Cloud Skimming",
+      "stable": true,
+      "state": {
+        "x": 3060,
+        "y": 220,
+        "vx": 0,
+        "vy": 0,
+        "grounded": true,
+        "rolling": false,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 0,
+        "pumpResult": "none"
+      },
+      "dead": false
+    },
+    {
+      "name": "F · Rolling Rejoin",
+      "stable": true,
+      "state": {
+        "x": 3530,
+        "y": 152,
+        "vx": 0,
+        "vy": 0,
+        "grounded": true,
+        "rolling": false,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 0,
+        "pumpResult": "none"
+      },
+      "dead": false
+    },
+    {
+      "name": "G · Recovery Cascades",
+      "stable": true,
+      "state": {
+        "x": 2720,
+        "y": 152,
+        "vx": 0,
+        "vy": 0,
+        "grounded": true,
+        "rolling": false,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 0,
+        "pumpResult": "none"
+      },
+      "dead": false
+    }
+  ],
+  "routes": [
+    {
+      "route": "garden",
+      "time": 28.066666666666666,
+      "complete": true,
+      "dead": false,
+      "final": {
+        "x": 4204.519405699064,
+        "y": 64,
+        "vx": 290.69583667662397,
+        "vy": 0,
+        "grounded": true,
+        "rolling": true,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 161.14063791471025,
+        "pumpResult": "none"
+      },
+      "events": [
+        {
+          "step": 0,
+          "event": {
+            "type": "curl",
+            "x": 30,
+            "y": 128
+          }
+        },
+        {
+          "step": 98,
+          "event": {
+            "type": "uncurl",
+            "x": 301.0140786732663,
+            "y": 125.99791146532735
+          }
+        },
+        {
+          "step": 187,
+          "event": {
+            "type": "checkpoint",
+            "index": 0,
+            "x": 600,
+            "y": 64.04111540810096
+          }
+        },
+        {
+          "step": 195,
+          "event": {
+            "type": "split",
+            "index": 0,
+            "x": 600,
+            "y": 64.04180842939408,
+            "time": 3.2515345555406965
+          }
+        },
+        {
+          "step": 290,
+          "event": {
+            "type": "seed",
+            "index": 0,
+            "x": 820,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 490,
+          "event": {
+            "type": "seed",
+            "index": 1,
+            "x": 1260,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 690,
+          "event": {
+            "type": "seed",
+            "index": 2,
+            "x": 1700,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 796,
+          "event": {
+            "type": "checkpoint",
+            "index": 1,
+            "x": 1940,
+            "y": 64
+          }
+        },
+        {
+          "step": 804,
+          "event": {
+            "type": "split",
+            "index": 1,
+            "x": 1940,
+            "y": 64,
+            "time": 13.40192692261219
+          }
+        },
+        {
+          "step": 1152,
+          "event": {
+            "type": "land",
+            "x": 2707.5456462151387,
+            "y": 152,
+            "impact": 208.33333333333334,
+            "speed": 132
+          }
+        },
+        {
+          "step": 1209,
+          "event": {
+            "type": "jump",
+            "x": 2830.7456462151285,
+            "y": 152
+          }
+        },
+        {
+          "step": 1258,
+          "event": {
+            "type": "land",
+            "x": 2940.7456462151195,
+            "y": 96,
+            "impact": 340,
+            "speed": 132
+          }
+        },
+        {
+          "step": 1327,
+          "event": {
+            "type": "jump",
+            "x": 3090.345646215107,
+            "y": 96
+          }
+        },
+        {
+          "step": 1331,
+          "event": {
+            "type": "split",
+            "index": 2,
+            "x": 3100,
+            "y": 115.16890579908356,
+            "time": 22.18980571049162
+          }
+        },
+        {
+          "step": 1380,
+          "event": {
+            "type": "land",
+            "x": 3209.1456462150977,
+            "y": 17.191592847534928,
+            "impact": 340,
+            "speed": 132
+          }
+        },
+        {
+          "step": 1523,
+          "event": {
+            "type": "curl",
+            "x": 3521.545646215072,
+            "y": 135.44090221280254
+          }
+        },
+        {
+          "step": 1644,
+          "event": {
+            "type": "checkpoint",
+            "index": 2,
+            "x": 4030,
+            "y": 64
+          }
+        },
+        {
+          "step": 1648,
+          "event": {
+            "type": "split",
+            "index": 3,
+            "x": 4030,
+            "y": 64,
+            "time": 27.473378538519555
+          }
+        },
+        {
+          "step": 1683,
+          "event": {
+            "type": "goal",
+            "x": 4204.519405699064,
+            "y": 64
+          }
+        }
+      ],
+      "trail": [
+        {
+          "x": 30.06888888888889,
+          "y": 128,
+          "vx": 4.133333333333333,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 0.0114814814814815,
+          "pumpResult": "none"
+        },
+        {
+          "x": 64.16888888888887,
+          "y": 128,
+          "vx": 128.13333333333324,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 5.694814814814812,
+          "pumpResult": "none"
+        },
+        {
+          "x": 159.068888888889,
+          "y": 128,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 21.511481481481507,
+          "pumpResult": "none"
+        },
+        {
+          "x": 273.9734796139409,
+          "y": 127.86861200232117,
+          "vx": 229.9497784266825,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 40.66245075895413,
+          "pumpResult": "none"
+        },
+        {
+          "x": 386.041564351124,
+          "y": 109.44138898398207,
+          "vx": 210.81083220310722,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 483.69698045267756,
+          "y": 82.62634354502536,
+          "vx": 180.81083220310722,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 566.3523965542312,
+          "y": 66.2927889219969,
+          "vx": 150.81083220310722,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 635.1456462151638,
+          "y": 61.13377991304925,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 701.1456462151651,
+          "y": 41.26187312036972,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 767.1456462151665,
+          "y": 17.58127852356816,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 833.1456462151679,
+          "y": 9.0800569856448,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 899.1456462151692,
+          "y": 26.3101197147659,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 965.1456462151706,
+          "y": 50.64777933891713,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1031.1456462151718,
+          "y": 63.949035858097375,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1097.1456462151732,
+          "y": 56.052998515945006,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1163.1456462151746,
+          "y": 32.895529121890405,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1229.145646215176,
+          "y": 11.97737192371661,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1295.1456462151773,
+          "y": 12.91367824035046,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1361.1456462151787,
+          "y": 34.528939934483105,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1427.14564621518,
+          "y": 57.20379852364305,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1493.1456462151814,
+          "y": 63.77537377635858,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1559.1456462151828,
+          "y": 49.20502958504812,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1625.1456462151841,
+          "y": 24.777997589620227,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1691.1456462151855,
+          "y": 8.638277790076025,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1757.1456462151868,
+          "y": 18.881032483394392,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1823.1456462151882,
+          "y": 42.86549314253682,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1889.1456462151896,
+          "y": 61.861550696703674,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 1955.145646215191,
+          "y": 64,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2021.1456462151923,
+          "y": 64.51697248037114,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2087.1456462151896,
+          "y": 70.01630368190611,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2153.145646215184,
+          "y": 80.5285298344871,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2219.1456462151787,
+          "y": 94.807224265379,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2285.145646215173,
+          "y": 111.60596030184655,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2351.1456462151677,
+          "y": 129.67831127115454,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2417.1456462151623,
+          "y": 147.7778505005677,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2483.145646215157,
+          "y": 164.65815131735081,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2549.1456462151514,
+          "y": 178.7884644326758,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2615.145646215146,
+          "y": 186.5496631500873,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2681.1456462151405,
+          "y": 170.14319226418115,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2747.1456462151355,
+          "y": 152,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2813.14564621513,
+          "y": 152,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2879.1456462151245,
+          "y": 201.54888888888888,
+          "vx": 132,
+          "vy": -0.8666666666666689,
+          "grounded": false,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 2945.145646215119,
+          "y": 96,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3011.1456462151136,
+          "y": 96,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3077.145646215108,
+          "y": 96,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3143.1456462151027,
+          "y": 144.94708333333332,
+          "vx": 132,
+          "vy": -23.78333333333334,
+          "grounded": false,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3209.1456462150977,
+          "y": 17.191592847534928,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3275.1456462150923,
+          "y": 37.439666622498734,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3341.145646215087,
+          "y": 64.34427780656279,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3407.1456462150813,
+          "y": 93.38306644782156,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3473.145646215076,
+          "y": 120.03367259436962,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 45.181099037184204,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3539.5220584500066,
+          "y": 139.85782856977823,
+          "vx": 138.01702077943185,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 48.26650690963223,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3624.617356921486,
+          "y": 148.0698268232415,
+          "vx": 217.32463558789783,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 62.55363357973579,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3751.255572921142,
+          "y": 119.59850370964021,
+          "vx": 284.34132151212503,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 84.27719119231813,
+          "pumpResult": "none"
+        },
+        {
+          "x": 3894.0994039625098,
+          "y": 74.2674466314472,
+          "vx": 292.18447670241284,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 109.26605506527305,
+          "pumpResult": "none"
+        },
+        {
+          "x": 4042.87669552692,
+          "y": 64,
+          "vx": 297.2958366766236,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 134.2001862193529,
+          "pumpResult": "none"
+        },
+        {
+          "x": 4189.974613865233,
+          "y": 64,
+          "vx": 291.29583667662394,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 158.71650594240504,
+          "pumpResult": "none"
+        }
+      ],
+      "practice": "developer playground"
+    },
+    {
+      "route": "flow",
+      "time": 19.066666666666666,
+      "complete": true,
+      "dead": false,
+      "final": {
+        "x": 4201.292991173671,
+        "y": 64,
+        "vx": 290.80579665391986,
+        "vy": 0,
+        "grounded": true,
+        "rolling": true,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 712.3543845167807,
+        "pumpResult": "perfect"
+      },
+      "events": [
+        {
+          "step": 0,
+          "event": {
+            "type": "curl",
+            "x": 30,
+            "y": 128
+          }
+        },
+        {
+          "step": 158,
+          "event": {
+            "type": "checkpoint",
+            "index": 0,
+            "x": 600,
+            "y": 64.04111540810096
+          }
+        },
+        {
+          "step": 162,
+          "event": {
+            "type": "split",
+            "index": 0,
+            "x": 600,
+            "y": 64.04475842845143,
+            "time": 2.7016603888786257
+          }
+        },
+        {
+          "step": 205,
+          "event": {
+            "type": "seed",
+            "index": 0,
+            "x": 820,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 207,
+          "event": {
+            "type": "pump",
+            "x": 821.1713581438484,
+            "y": 8.129725914200858,
+            "quality": "perfect",
+            "valley": "1000:valley:820.000000"
+          }
+        },
+        {
+          "step": 312,
+          "event": {
+            "type": "seed",
+            "index": 1,
+            "x": 1260,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 314,
+          "event": {
+            "type": "pump",
+            "x": 1263.4291967472348,
+            "y": 8.240325011882355,
+            "quality": "perfect",
+            "valley": "1000:valley:1260.000000"
+          }
+        },
+        {
+          "step": 419,
+          "event": {
+            "type": "seed",
+            "index": 2,
+            "x": 1700,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 420,
+          "event": {
+            "type": "pump",
+            "x": 1700.7577902840815,
+            "y": 8.113065788488436,
+            "quality": "perfect",
+            "valley": "1000:valley:1700.000000"
+          }
+        },
+        {
+          "step": 478,
+          "event": {
+            "type": "checkpoint",
+            "index": 1,
+            "x": 1940,
+            "y": 64
+          }
+        },
+        {
+          "step": 483,
+          "event": {
+            "type": "split",
+            "index": 1,
+            "x": 1940,
+            "y": 64,
+            "time": 8.053507597080962
+          }
+        },
+        {
+          "step": 658,
+          "event": {
+            "type": "launch",
+            "x": 2591.3178812980605,
+            "y": 186.85927131253612
+          }
+        },
+        {
+          "step": 674,
+          "event": {
+            "type": "land",
+            "x": 2650.6836564329546,
+            "y": 152,
+            "impact": 300.50293136537914,
+            "speed": 218.87165675585317
+          }
+        },
+        {
+          "step": 722,
+          "event": {
+            "type": "jump",
+            "x": 2830.53604499148,
+            "y": 152
+          }
+        },
+        {
+          "step": 771,
+          "event": {
+            "type": "land",
+            "x": 3011.4110449914797,
+            "y": 96,
+            "impact": 340,
+            "speed": 204.8
+          }
+        },
+        {
+          "step": 793,
+          "event": {
+            "type": "jump",
+            "x": 3090.7877116581453,
+            "y": 96
+          }
+        },
+        {
+          "step": 795,
+          "event": {
+            "type": "split",
+            "index": 2,
+            "x": 3100,
+            "y": 107.11581424528457,
+            "time": 13.256908840743995
+          }
+        },
+        {
+          "step": 843,
+          "event": {
+            "type": "land",
+            "x": 3275.067711658145,
+            "y": 37.41094167120142,
+            "impact": 340,
+            "speed": 204.3
+          }
+        },
+        {
+          "step": 1105,
+          "event": {
+            "type": "checkpoint",
+            "index": 2,
+            "x": 4030,
+            "y": 64
+          }
+        },
+        {
+          "step": 1109,
+          "event": {
+            "type": "split",
+            "index": 3,
+            "x": 4030,
+            "y": 64,
+            "time": 18.48443229336075
+          }
+        },
+        {
+          "step": 1143,
+          "event": {
+            "type": "goal",
+            "x": 4201.292991173671,
+            "y": 64
+          }
+        }
+      ],
+      "trail": [
+        {
+          "x": 30.06888888888889,
+          "y": 128,
+          "vx": 4.133333333333333,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 0.0114814814814815,
+          "pumpResult": "none"
+        },
+        {
+          "x": 64.16888888888887,
+          "y": 128,
+          "vx": 128.13333333333324,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 5.694814814814812,
+          "pumpResult": "none"
+        },
+        {
+          "x": 159.068888888889,
+          "y": 128,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 21.511481481481507,
+          "pumpResult": "none"
+        },
+        {
+          "x": 273.9734796139409,
+          "y": 127.86861200232117,
+          "vx": 229.9497784266825,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 40.66245075895413,
+          "pumpResult": "none"
+        },
+        {
+          "x": 399.5074735499754,
+          "y": 105.87581166014468,
+          "vx": 285.5972855022027,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 61.95324952478546,
+          "pumpResult": "none"
+        },
+        {
+          "x": 544.8356761605871,
+          "y": 69.30279935790358,
+          "vx": 296.0220529879115,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 86.94277412946563,
+          "pumpResult": "none"
+        },
+        {
+          "x": 692.0600402306599,
+          "y": 44.63191588984857,
+          "vx": 281.79510762851334,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 111.96219138846318,
+          "pumpResult": "none"
+        },
+        {
+          "x": 836.1267708667419,
+          "y": 9.450095126456507,
+          "vx": 297.39760733278865,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 136.9387869413805,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 955.5830754987892,
+          "y": 47.37629419106801,
+          "vx": 202.32156931801882,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 157.87263465052342,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1063.5210747543165,
+          "y": 62.8761430982974,
+          "vx": 231.03703318813123,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 176.22219675772592,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1195.1326513677147,
+          "y": 21.35652166900359,
+          "vx": 284.8041989919439,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 199.27593380242524,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1337.496029889426,
+          "y": 25.71732889455229,
+          "vx": 241.36721379336447,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 223.64791243147397,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1441.390369426917,
+          "y": 60.478387668291795,
+          "vx": 210.31463118096593,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 241.92797571365918,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1558.4021265084148,
+          "y": 49.45812802259067,
+          "vx": 260.0707804478537,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 261.76362200242465,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1700.7577902840815,
+          "y": 8.113065788488436,
+          "vx": 299.77298094646875,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 286.58266634210815,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1825.1192813521386,
+          "y": 43.596245590628506,
+          "vx": 203.70738957353151,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 308.2342261570837,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1931.533954190795,
+          "y": 64,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 326.43284649053464,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2046.27595398485,
+          "y": 65.94062232181604,
+          "vx": 228.1742082569012,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 345.56455622818606,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2159.047874711211,
+          "y": 81.67051715226576,
+          "vx": 222.78457520285068,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 364.5532230821119,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2269.3310557586246,
+          "y": 107.41778582912023,
+          "vx": 218.70799583983202,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 383.43116041672187,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2378.310243286597,
+          "y": 137.19553186302554,
+          "vx": 217.76876901503738,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 402.2603547153504,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2487.667129742082,
+          "y": 165.7384963015772,
+          "vx": 220.24770034853688,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 421.0981322188495,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2598.855269856589,
+          "y": 186.80917360035681,
+          "vx": 225.87165675585317,
+          "vy": -8.836264698712494,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 439.9858089748008,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2711.8060449914824,
+          "y": 152,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 458.8109381639498,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2826.70604499148,
+          "y": 152,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 477.96093816394944,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2937.98104499148,
+          "y": 194.53805555555556,
+          "vx": 215.3,
+          "vy": -118.57499999999999,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 496.5067714972828,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3044.827711658146,
+          "y": 96,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 514.3145492750605,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3158.302711658145,
+          "y": 144.8,
+          "vx": 220.8,
+          "vy": 38,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 533.2270492750602,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3264.827711658145,
+          "y": 48.678333333333306,
+          "vx": 205.8,
+          "vy": -340,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 550.9812159417269,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3357.856732585374,
+          "y": 71.67368196431234,
+          "vx": 162.83057963338243,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 567.6235175695109,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3426.8205420373456,
+          "y": 101.78230308827742,
+          "vx": 116.2200162880807,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 580.165363880544,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3475.880663485813,
+          "y": 121.02012627451835,
+          "vx": 84.42191911996505,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 588.9492518331081,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3514.620424536926,
+          "y": 133.5318952001635,
+          "vx": 75.35102394762949,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 595.7355739715827,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3556.7806142550717,
+          "y": 143.29969103095766,
+          "vx": 99.80989235337373,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 602.9515730516265,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3626.0495273286533,
+          "y": 148.0387189437173,
+          "vx": 188.9960124822262,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 614.5441430138904,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3748.1134657787106,
+          "y": 120.65223955609626,
+          "vx": 284.52442063130906,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 635.4763275414099,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3890.8792748444694,
+          "y": 75.02798757873803,
+          "vx": 291.74943723067923,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 660.4660869201668,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 4039.5898030140143,
+          "y": 64,
+          "vx": 297.4057966539195,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 685.4038531568378,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 4186.742701340975,
+          "y": 64,
+          "vx": 291.4057966539198,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.9293362113314,
+          "pumpResult": "perfect"
+        }
+      ],
+      "practice": "developer playground"
+    },
+    {
+      "route": "skyway",
+      "time": 17.7,
+      "complete": true,
+      "dead": false,
+      "final": {
+        "x": 4202.447592498814,
+        "y": 64,
+        "vx": 290.8000000000005,
+        "vy": 0,
+        "grounded": true,
+        "rolling": true,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 709.1564059025194,
+        "pumpResult": "perfect"
+      },
+      "events": [
+        {
+          "step": 0,
+          "event": {
+            "type": "curl",
+            "x": 30,
+            "y": 128
+          }
+        },
+        {
+          "step": 158,
+          "event": {
+            "type": "checkpoint",
+            "index": 0,
+            "x": 600,
+            "y": 64.04111540810096
+          }
+        },
+        {
+          "step": 162,
+          "event": {
+            "type": "split",
+            "index": 0,
+            "x": 600,
+            "y": 64.04475842845143,
+            "time": 2.7016603888786257
+          }
+        },
+        {
+          "step": 205,
+          "event": {
+            "type": "seed",
+            "index": 0,
+            "x": 820,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 207,
+          "event": {
+            "type": "pump",
+            "x": 821.1713581438484,
+            "y": 8.129725914200858,
+            "quality": "perfect",
+            "valley": "1000:valley:820.000000"
+          }
+        },
+        {
+          "step": 312,
+          "event": {
+            "type": "seed",
+            "index": 1,
+            "x": 1260,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 314,
+          "event": {
+            "type": "pump",
+            "x": 1263.4291967472348,
+            "y": 8.240325011882355,
+            "quality": "perfect",
+            "valley": "1000:valley:1260.000000"
+          }
+        },
+        {
+          "step": 419,
+          "event": {
+            "type": "seed",
+            "index": 2,
+            "x": 1700,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 420,
+          "event": {
+            "type": "pump",
+            "x": 1700.7577902840815,
+            "y": 8.113065788488436,
+            "quality": "perfect",
+            "valley": "1000:valley:1700.000000"
+          }
+        },
+        {
+          "step": 478,
+          "event": {
+            "type": "checkpoint",
+            "index": 1,
+            "x": 1940,
+            "y": 64
+          }
+        },
+        {
+          "step": 483,
+          "event": {
+            "type": "split",
+            "index": 1,
+            "x": 1940,
+            "y": 64,
+            "time": 8.053507597080962
+          }
+        },
+        {
+          "step": 651,
+          "event": {
+            "type": "jump",
+            "x": 2561.6354161066624,
+            "y": 181.21188057466196
+          }
+        },
+        {
+          "step": 676,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 2651.6813560077117,
+            "y": 235.54881166699045
+          }
+        },
+        {
+          "step": 684,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 688,
+          "event": {
+            "type": "land",
+            "x": 2700.348022674378,
+            "y": 228,
+            "impact": 121.68582147342839,
+            "speed": 223
+          }
+        },
+        {
+          "step": 688,
+          "event": {
+            "type": "jump",
+            "x": 2700.348022674378,
+            "y": 228
+          }
+        },
+        {
+          "step": 688,
+          "event": {
+            "type": "skim",
+            "x": 2700.348022674378,
+            "y": 228,
+            "speed": 223
+          }
+        },
+        {
+          "step": 713,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 2787.0480226743784,
+            "y": 276.9470833333333
+          }
+        },
+        {
+          "step": 720,
+          "event": {
+            "type": "ring",
+            "index": 0,
+            "x": 2830,
+            "y": 280
+          }
+        },
+        {
+          "step": 721,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 721,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 2817.0480226743784,
+            "y": 275.4154166666666
+          }
+        },
+        {
+          "step": 729,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 744,
+          "event": {
+            "type": "land",
+            "x": 2906.0480226743784,
+            "y": 228,
+            "impact": 340,
+            "speed": 217.5
+          }
+        },
+        {
+          "step": 744,
+          "event": {
+            "type": "jump",
+            "x": 2906.0480226743784,
+            "y": 228
+          }
+        },
+        {
+          "step": 744,
+          "event": {
+            "type": "skim",
+            "x": 2906.0480226743784,
+            "y": 228,
+            "speed": 217.5
+          }
+        },
+        {
+          "step": 769,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 2990.5480226743784,
+            "y": 276.9470833333333
+          }
+        },
+        {
+          "step": 777,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 793,
+          "event": {
+            "type": "land",
+            "x": 3083.1646893410452,
+            "y": 220,
+            "impact": 340,
+            "speed": 217
+          }
+        },
+        {
+          "step": 793,
+          "event": {
+            "type": "jump",
+            "x": 3083.1646893410452,
+            "y": 220
+          }
+        },
+        {
+          "step": 793,
+          "event": {
+            "type": "skim",
+            "x": 3083.1646893410452,
+            "y": 220,
+            "speed": 217
+          }
+        },
+        {
+          "step": 798,
+          "event": {
+            "type": "split",
+            "index": 2,
+            "x": 3100,
+            "y": 240.30280721892225,
+            "time": 13.311431129723177
+          }
+        },
+        {
+          "step": 818,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 3167.464689341045,
+            "y": 268.94708333333335
+          }
+        },
+        {
+          "step": 826,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 844,
+          "event": {
+            "type": "land",
+            "x": 3267.289689341045,
+            "y": 200,
+            "impact": 340,
+            "speed": 216
+          }
+        },
+        {
+          "step": 854,
+          "event": {
+            "type": "jump",
+            "x": 3301.483022674378,
+            "y": 200
+          }
+        },
+        {
+          "step": 879,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 3394.5246893410444,
+            "y": 248.35972222222222
+          }
+        },
+        {
+          "step": 887,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 910,
+          "event": {
+            "type": "land",
+            "x": 3512.2246893410443,
+            "y": 152,
+            "impact": 340,
+            "speed": 213.5
+          }
+        },
+        {
+          "step": 1023,
+          "event": {
+            "type": "checkpoint",
+            "index": 2,
+            "x": 4030,
+            "y": 64
+          }
+        },
+        {
+          "step": 1026,
+          "event": {
+            "type": "split",
+            "index": 3,
+            "x": 4030,
+            "y": 64,
+            "time": 17.113876452320973
+          }
+        },
+        {
+          "step": 1061,
+          "event": {
+            "type": "goal",
+            "x": 4202.447592498814,
+            "y": 64
+          }
+        }
+      ],
+      "trail": [
+        {
+          "x": 30.06888888888889,
+          "y": 128,
+          "vx": 4.133333333333333,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 0.0114814814814815,
+          "pumpResult": "none"
+        },
+        {
+          "x": 64.16888888888887,
+          "y": 128,
+          "vx": 128.13333333333324,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 5.694814814814812,
+          "pumpResult": "none"
+        },
+        {
+          "x": 159.068888888889,
+          "y": 128,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 21.511481481481507,
+          "pumpResult": "none"
+        },
+        {
+          "x": 273.9734796139409,
+          "y": 127.86861200232117,
+          "vx": 229.9497784266825,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 40.66245075895413,
+          "pumpResult": "none"
+        },
+        {
+          "x": 399.5074735499754,
+          "y": 105.87581166014468,
+          "vx": 285.5972855022027,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 61.95324952478546,
+          "pumpResult": "none"
+        },
+        {
+          "x": 544.8356761605871,
+          "y": 69.30279935790358,
+          "vx": 296.0220529879115,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 86.94277412946563,
+          "pumpResult": "none"
+        },
+        {
+          "x": 692.0600402306599,
+          "y": 44.63191588984857,
+          "vx": 281.79510762851334,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 111.96219138846318,
+          "pumpResult": "none"
+        },
+        {
+          "x": 836.1267708667419,
+          "y": 9.450095126456507,
+          "vx": 297.39760733278865,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 136.9387869413805,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 955.5830754987892,
+          "y": 47.37629419106801,
+          "vx": 202.32156931801882,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 157.87263465052342,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1063.5210747543165,
+          "y": 62.8761430982974,
+          "vx": 231.03703318813123,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 176.22219675772592,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1195.1326513677147,
+          "y": 21.35652166900359,
+          "vx": 284.8041989919439,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 199.27593380242524,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1337.496029889426,
+          "y": 25.71732889455229,
+          "vx": 241.36721379336447,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 223.64791243147397,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1441.390369426917,
+          "y": 60.478387668291795,
+          "vx": 210.31463118096593,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 241.92797571365918,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1558.4021265084148,
+          "y": 49.45812802259067,
+          "vx": 260.0707804478537,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 261.76362200242465,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1700.7577902840815,
+          "y": 8.113065788488436,
+          "vx": 299.77298094646875,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 286.58266634210815,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1825.1192813521386,
+          "y": 43.596245590628506,
+          "vx": 203.70738957353151,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 308.2342261570837,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1931.533954190795,
+          "y": 64,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 326.43284649053464,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2046.27595398485,
+          "y": 65.94062232181604,
+          "vx": 228.1742082569012,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 345.56455622818606,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2159.047874711211,
+          "y": 81.67051715226576,
+          "vx": 222.78457520285068,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 364.5532230821119,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2269.3310557586246,
+          "y": 107.41778582912023,
+          "vx": 218.70799583983202,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 383.43116041672187,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2378.310243286597,
+          "y": 137.19553186302554,
+          "vx": 217.76876901503738,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 402.2603547153504,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2487.667129742082,
+          "y": 165.7384963015772,
+          "vx": 220.24770034853688,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 421.0981322188495,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2598.278792067082,
+          "y": 220.68781967826004,
+          "vx": 217.61025576251782,
+          "vy": 170.85563462158837,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 439.8018869601281,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2707.7563560077115,
+          "y": 237.33333333333334,
+          "vx": 222,
+          "vy": 272.66666666666663,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 458.0481476168997,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2817.0480226743784,
+          "y": 275.4154166666666,
+          "vx": 225,
+          "vy": -17.6475,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0.006666666666666703,
+          "rollAngle": 476.26342539467754,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2927.6230226743783,
+          "y": 253.06666666666666,
+          "vx": 214.5,
+          "vy": 213.99999999999997,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 494.69259206134416,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3035.4980226743783,
+          "y": 270.76669444444434,
+          "vx": 223.5,
+          "vy": -100.98083333333332,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 0,
+          "dashTimer": 0,
+          "rollAngle": 512.6717587280109,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3143.3730226743783,
+          "y": 268.1666666666667,
+          "vx": 208.5,
+          "vy": 52.666666666666664,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 530.6509253946776,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3252.839689341045,
+          "y": 221.33687499999996,
+          "vx": 218,
+          "vy": -330.1475,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 0,
+          "dashTimer": 0,
+          "rollAngle": 548.8953698391219,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3365.318022674378,
+          "y": 248.16666666666669,
+          "vx": 221.3,
+          "vy": 52.666666666666664,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 567.6417587280107,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3476.2663560077112,
+          "y": 205.62176388888892,
+          "vx": 218.5,
+          "vy": -311.03291666666667,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 0,
+          "dashTimer": 0,
+          "rollAngle": 586.1331476168997,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3588.423022674376,
+          "y": 152,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 604.8259253946771,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3711.2202169678076,
+          "y": 132.34059430981245,
+          "vx": 277.2233922834526,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 625.6354913887329,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3853.454121789844,
+          "y": 85.25007023373,
+          "vx": 287.1671967719,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 650.608760407409,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 4001.0009258321484,
+          "y": 64,
+          "vx": 299.00000000000006,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 675.5819614580752,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 4148.950925832147,
+          "y": 64,
+          "vx": 293.0000000000004,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 700.2402947914082,
+          "pumpResult": "perfect"
+        }
+      ],
+      "practice": "developer playground"
+    },
+    {
+      "route": "missed",
+      "time": 19.183333333333334,
+      "complete": true,
+      "dead": false,
+      "final": {
+        "x": 4202.431426608059,
+        "y": 64,
+        "vx": 290.8000000000005,
+        "vy": 0,
+        "grounded": true,
+        "rolling": true,
+        "dashCharges": 1,
+        "dashTimer": 0,
+        "rollAngle": 644.6556789216795,
+        "pumpResult": "perfect"
+      },
+      "events": [
+        {
+          "step": 0,
+          "event": {
+            "type": "curl",
+            "x": 30,
+            "y": 128
+          }
+        },
+        {
+          "step": 158,
+          "event": {
+            "type": "checkpoint",
+            "index": 0,
+            "x": 600,
+            "y": 64.04111540810096
+          }
+        },
+        {
+          "step": 162,
+          "event": {
+            "type": "split",
+            "index": 0,
+            "x": 600,
+            "y": 64.04475842845143,
+            "time": 2.7016603888786257
+          }
+        },
+        {
+          "step": 205,
+          "event": {
+            "type": "seed",
+            "index": 0,
+            "x": 820,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 207,
+          "event": {
+            "type": "pump",
+            "x": 821.1713581438484,
+            "y": 8.129725914200858,
+            "quality": "perfect",
+            "valley": "1000:valley:820.000000"
+          }
+        },
+        {
+          "step": 312,
+          "event": {
+            "type": "seed",
+            "index": 1,
+            "x": 1260,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 314,
+          "event": {
+            "type": "pump",
+            "x": 1263.4291967472348,
+            "y": 8.240325011882355,
+            "quality": "perfect",
+            "valley": "1000:valley:1260.000000"
+          }
+        },
+        {
+          "step": 419,
+          "event": {
+            "type": "seed",
+            "index": 2,
+            "x": 1700,
+            "y": 25,
+            "chain": 1
+          }
+        },
+        {
+          "step": 420,
+          "event": {
+            "type": "pump",
+            "x": 1700.7577902840815,
+            "y": 8.113065788488436,
+            "quality": "perfect",
+            "valley": "1000:valley:1700.000000"
+          }
+        },
+        {
+          "step": 478,
+          "event": {
+            "type": "checkpoint",
+            "index": 1,
+            "x": 1940,
+            "y": 64
+          }
+        },
+        {
+          "step": 483,
+          "event": {
+            "type": "split",
+            "index": 1,
+            "x": 1940,
+            "y": 64,
+            "time": 8.053507597080962
+          }
+        },
+        {
+          "step": 651,
+          "event": {
+            "type": "jump",
+            "x": 2561.6354161066624,
+            "y": 181.21188057466196
+          }
+        },
+        {
+          "step": 676,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 2651.6813560077117,
+            "y": 235.54881166699045
+          }
+        },
+        {
+          "step": 684,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 688,
+          "event": {
+            "type": "land",
+            "x": 2700.348022674378,
+            "y": 228,
+            "impact": 121.68582147342839,
+            "speed": 223
+          }
+        },
+        {
+          "step": 688,
+          "event": {
+            "type": "jump",
+            "x": 2700.348022674378,
+            "y": 228
+          }
+        },
+        {
+          "step": 688,
+          "event": {
+            "type": "skim",
+            "x": 2700.348022674378,
+            "y": 228,
+            "speed": 223
+          }
+        },
+        {
+          "step": 713,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 2787.0480226743784,
+            "y": 276.9470833333333
+          }
+        },
+        {
+          "step": 720,
+          "event": {
+            "type": "ring",
+            "index": 0,
+            "x": 2830,
+            "y": 280
+          }
+        },
+        {
+          "step": 721,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 721,
+          "event": {
+            "type": "dash",
+            "dir": 1,
+            "x": 2817.0480226743784,
+            "y": 275.4154166666666
+          }
+        },
+        {
+          "step": 729,
+          "event": {
+            "type": "dashEnd",
+            "reason": "timer"
+          }
+        },
+        {
+          "step": 744,
+          "event": {
+            "type": "land",
+            "x": 2906.0480226743784,
+            "y": 228,
+            "impact": 340,
+            "speed": 217.5
+          }
+        },
+        {
+          "step": 744,
+          "event": {
+            "type": "jump",
+            "x": 2906.0480226743784,
+            "y": 228
+          }
+        },
+        {
+          "step": 744,
+          "event": {
+            "type": "skim",
+            "x": 2906.0480226743784,
+            "y": 228,
+            "speed": 217.5
+          }
+        },
+        {
+          "step": 786,
+          "event": {
+            "type": "land",
+            "x": 3050.7730226743784,
+            "y": 220,
+            "impact": 340,
+            "speed": 196.5
+          }
+        },
+        {
+          "step": 800,
+          "event": {
+            "type": "split",
+            "index": 2,
+            "x": 3100,
+            "y": 220,
+            "time": 13.339412433967023
+          }
+        },
+        {
+          "step": 806,
+          "event": {
+            "type": "brake",
+            "x": 3121.5830226743774,
+            "y": 220
+          }
+        },
+        {
+          "step": 818,
+          "event": {
+            "type": "launch",
+            "x": 3156.4446893410445,
+            "y": 220
+          }
+        },
+        {
+          "step": 832,
+          "event": {
+            "type": "uncurl",
+            "x": 3183.9144115632666,
+            "y": 188.40277777777777
+          }
+        },
+        {
+          "step": 860,
+          "event": {
+            "type": "land",
+            "x": 3247.2819115632624,
+            "y": 27.817977843619463,
+            "impact": 340,
+            "speed": 132
+          }
+        },
+        {
+          "step": 1008,
+          "event": {
+            "type": "curl",
+            "x": 3570.6819115632356,
+            "y": 145.44730417156737
+          }
+        },
+        {
+          "step": 1112,
+          "event": {
+            "type": "checkpoint",
+            "index": 2,
+            "x": 4030,
+            "y": 64
+          }
+        },
+        {
+          "step": 1115,
+          "event": {
+            "type": "split",
+            "index": 3,
+            "x": 4030,
+            "y": 64,
+            "time": 18.597264070042332
+          }
+        },
+        {
+          "step": 1150,
+          "event": {
+            "type": "goal",
+            "x": 4202.431426608059,
+            "y": 64
+          }
+        }
+      ],
+      "trail": [
+        {
+          "x": 30.06888888888889,
+          "y": 128,
+          "vx": 4.133333333333333,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 0.0114814814814815,
+          "pumpResult": "none"
+        },
+        {
+          "x": 64.16888888888887,
+          "y": 128,
+          "vx": 128.13333333333324,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 5.694814814814812,
+          "pumpResult": "none"
+        },
+        {
+          "x": 159.068888888889,
+          "y": 128,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 21.511481481481507,
+          "pumpResult": "none"
+        },
+        {
+          "x": 273.9734796139409,
+          "y": 127.86861200232117,
+          "vx": 229.9497784266825,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 40.66245075895413,
+          "pumpResult": "none"
+        },
+        {
+          "x": 399.5074735499754,
+          "y": 105.87581166014468,
+          "vx": 285.5972855022027,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 61.95324952478546,
+          "pumpResult": "none"
+        },
+        {
+          "x": 544.8356761605871,
+          "y": 69.30279935790358,
+          "vx": 296.0220529879115,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 86.94277412946563,
+          "pumpResult": "none"
+        },
+        {
+          "x": 692.0600402306599,
+          "y": 44.63191588984857,
+          "vx": 281.79510762851334,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 111.96219138846318,
+          "pumpResult": "none"
+        },
+        {
+          "x": 836.1267708667419,
+          "y": 9.450095126456507,
+          "vx": 297.39760733278865,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 136.9387869413805,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 955.5830754987892,
+          "y": 47.37629419106801,
+          "vx": 202.32156931801882,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 157.87263465052342,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1063.5210747543165,
+          "y": 62.8761430982974,
+          "vx": 231.03703318813123,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 176.22219675772592,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1195.1326513677147,
+          "y": 21.35652166900359,
+          "vx": 284.8041989919439,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 199.27593380242524,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1337.496029889426,
+          "y": 25.71732889455229,
+          "vx": 241.36721379336447,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 223.64791243147397,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1441.390369426917,
+          "y": 60.478387668291795,
+          "vx": 210.31463118096593,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 241.92797571365918,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1558.4021265084148,
+          "y": 49.45812802259067,
+          "vx": 260.0707804478537,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 261.76362200242465,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1700.7577902840815,
+          "y": 8.113065788488436,
+          "vx": 299.77298094646875,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 286.58266634210815,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1825.1192813521386,
+          "y": 43.596245590628506,
+          "vx": 203.70738957353151,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 308.2342261570837,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 1931.533954190795,
+          "y": 64,
+          "vx": 229.8,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 326.43284649053464,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2046.27595398485,
+          "y": 65.94062232181604,
+          "vx": 228.1742082569012,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 345.56455622818606,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2159.047874711211,
+          "y": 81.67051715226576,
+          "vx": 222.78457520285068,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 364.5532230821119,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2269.3310557586246,
+          "y": 107.41778582912023,
+          "vx": 218.70799583983202,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 383.43116041672187,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2378.310243286597,
+          "y": 137.19553186302554,
+          "vx": 217.76876901503738,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 402.2603547153504,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2487.667129742082,
+          "y": 165.7384963015772,
+          "vx": 220.24770034853688,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 421.0981322188495,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2598.278792067082,
+          "y": 220.68781967826004,
+          "vx": 217.61025576251782,
+          "vy": 170.85563462158837,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 439.8018869601281,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2707.7563560077115,
+          "y": 237.33333333333334,
+          "vx": 222,
+          "vy": 272.66666666666663,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 458.0481476168997,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2817.0480226743784,
+          "y": 275.4154166666666,
+          "vx": 225,
+          "vy": -17.6475,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0.006666666666666703,
+          "rollAngle": 476.26342539467754,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 2927.6230226743783,
+          "y": 253.06666666666666,
+          "vx": 214.5,
+          "vy": 213.99999999999997,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 494.69259206134416,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3030.9980226743783,
+          "y": 246.9820833333333,
+          "vx": 199.5,
+          "vy": -264.40833333333336,
+          "grounded": false,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 511.9217587280109,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3137.9746893410443,
+          "y": 220,
+          "vx": 174.63333333333335,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 529.7512031724552,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3203.2819115632656,
+          "y": 138.77777777777783,
+          "vx": 132,
+          "vy": -340,
+          "grounded": false,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 537.4078235428257,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3269.2819115632606,
+          "y": 35.30487438629902,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 537.4078235428257,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3335.281911563255,
+          "y": 61.80113413350317,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 537.4078235428257,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3401.2819115632497,
+          "y": 90.83335798575123,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 537.4078235428257,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3467.281911563244,
+          "y": 117.87918599113773,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 537.4078235428257,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3533.2819115632387,
+          "y": 138.4162581977572,
+          "vx": 132,
+          "vy": 0,
+          "grounded": true,
+          "rolling": false,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 537.4078235428257,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3603.40226802084,
+          "y": 148.0467311187413,
+          "vx": 170.53060844819683,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 542.881131601685,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3716.4599726451825,
+          "y": 130.77589228301616,
+          "vx": 268.05567017345317,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 562.0488578477419,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 3858.224753768994,
+          "y": 83.82335155920153,
+          "vx": 287.6802923843055,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 586.9406282783166,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 4005.9647599413943,
+          "y": 64,
+          "vx": 298.80000000000007,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 611.9112344772353,
+          "pumpResult": "perfect"
+        },
+        {
+          "x": 4153.814759941392,
+          "y": 64,
+          "vx": 292.8000000000004,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 636.5529011439017,
+          "pumpResult": "perfect"
+        }
+      ],
+      "practice": "developer playground"
+    }
+  ],
+  "clearance": {
+    "underArch": {
+      "x": 185.8788888888891,
+      "y": 128,
+      "vx": 229.8,
+      "vy": 0,
+      "grounded": true,
+      "rolling": true,
+      "dashCharges": 1,
+      "dashTimer": 0,
+      "rollAngle": 25.979814814814855,
+      "pumpResult": "none"
+    },
+    "afterArch": {
+      "x": 266.05888888888927,
+      "y": 127.99814158999648,
+      "vx": 224.8,
+      "vy": 0,
+      "grounded": true,
+      "rolling": false,
+      "dashCharges": 1,
+      "dashTimer": 0,
+      "rollAngle": 36.193148148148225,
+      "pumpResult": "none"
+    },
+    "blocked": false
+  },
+  "recordReplay": {
+    "equal": true,
+    "steps": 350,
+    "pumps": 3,
+    "practice": "developer playground",
+    "final": {
+      "x": 1940.6689231775285,
+      "y": 64,
+      "vx": 229.8,
+      "vy": 0,
+      "grounded": true,
+      "rolling": true,
+      "dashCharges": 1,
+      "dashTimer": 0,
+      "rollAngle": 231.76865123350632,
+      "pumpResult": "perfect"
+    }
+  },
+  "parity": {
+    "equal": true,
+    "rows": [
+      {
+        "character": "poppy",
+        "preset": "gentle",
+        "bloom": 0,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "poppy",
+        "preset": "gentle",
+        "bloom": 1,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "poppy",
+        "preset": "standard",
+        "bloom": 0,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "poppy",
+        "preset": "standard",
+        "bloom": 1,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "poppy",
+        "preset": "vivid",
+        "bloom": 0,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "poppy",
+        "preset": "vivid",
+        "bloom": 1,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "puddlewick",
+        "preset": "gentle",
+        "bloom": 0,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "puddlewick",
+        "preset": "gentle",
+        "bloom": 1,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "puddlewick",
+        "preset": "standard",
+        "bloom": 0,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "puddlewick",
+        "preset": "standard",
+        "bloom": 1,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "puddlewick",
+        "preset": "vivid",
+        "bloom": 0,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      },
+      {
+        "character": "puddlewick",
+        "preset": "vivid",
+        "bloom": 1,
+        "final": {
+          "x": 4202.447592498814,
+          "y": 64,
+          "vx": 290.8000000000005,
+          "vy": 0,
+          "grounded": true,
+          "rolling": true,
+          "dashCharges": 1,
+          "dashTimer": 0,
+          "rollAngle": 709.1564059025194,
+          "pumpResult": "perfect"
+        },
+        "time": 17.7,
+        "pumps": 3,
+        "skims": 3
+      }
+    ]
+  },
+  "audio": "running",
+  "sourcePhysicsCommit": "819caa2",
+  "boundary": "Automated Chromium DOM KeyboardEvent -> Input -> Game.step -> World. Synthetic events; no human playtest. Memory-only record store."
+}

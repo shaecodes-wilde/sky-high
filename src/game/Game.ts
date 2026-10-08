@@ -160,7 +160,7 @@ export class Game {
       () => this.applySettings(),
       (done) => {
         this.input.captureNext = (code) => {
-          if (code !== 'Escape' && !['KeyA', 'KeyD', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyM', 'KeyP', 'Backspace'].includes(code)) this.settings.dashKey = code;
+          if (code !== 'Escape' && !['KeyA', 'KeyD', 'KeyS', 'ArrowLeft', 'ArrowRight', 'ArrowDown', 'Space', 'KeyR', 'KeyM', 'KeyP', 'Backspace'].includes(code)) this.settings.dashKey = code;
           this.applySettings();
           done();
         };
@@ -327,7 +327,7 @@ export class Game {
     for (const a of this.input.takeMeta()) this.onMeta(a);
 
     if (this.state === 'playing') {
-      alpha = this.loop.advance(dt, () => this.step());
+      alpha = this.loop.advance(dt, (remaining) => this.step(now - remaining * 1000));
       if (this.world.complete) {
         this.completeTimer += dt;
         if (this.completeTimer > 3.6) this.finish();
@@ -340,7 +340,7 @@ export class Game {
       this.camera.x = this.level.start.x + 200 + Math.sin(this.titleTime * 0.12) * 140;
       this.camera.y = 150;
     } else if (this.state === 'complete') {
-      alpha = this.loop.advance(dt, () => this.step());
+      alpha = this.loop.advance(dt, (remaining) => this.step(now - remaining * 1000));
     }
 
     this.renderer.render({
@@ -375,10 +375,10 @@ export class Game {
     }
   }
 
-  private step(): void {
+  private step(sampleTime = performance.now()): void {
     const w = this.world;
     const p = w.player;
-    const input = this.state === 'playing' ? this.input.sample(!p.grounded, p.facing, performance.now()) : { move: 0 as const, jumpHeld: false, jumpPressed: false, dash: 0 as const };
+    const input = this.state === 'playing' ? this.input.sample(!p.grounded, p.facing, sampleTime, p.rolling) : { move: 0 as const, jumpHeld: false, jumpPressed: false, dash: 0 as const };
     w.step(this.playground && this.state === 'playing' ? this.playground.input(input) : input);
     if (this.playground && w.events.some((e) => e.type === 'respawn')) this.playground.restoreSectionSpawn(w);
     if (this.state === 'playing') this.playground?.afterStep(w);
@@ -396,11 +396,26 @@ export class Game {
     const A = this.audio;
     for (const e of events) {
       switch (e.type) {
+        case 'curl':
+          A.play('curl');
+          break;
+        case 'uncurl':
+          A.play('uncurl');
+          break;
+        case 'pump':
+          A.play(e.quality === 'perfect' ? 'pumpPerfect' : 'pumpGood');
+          break;
+        case 'launch':
+          A.play('rollJump');
+          break;
+        case 'brake':
+          if (this.world.player.rolling) A.play('rollBrake');
+          break;
         case 'jump':
-          A.play('jump');
+          A.play(this.world.player.rolling ? 'rollJump' : 'jump');
           break;
         case 'land':
-          A.play('land', { impact: e.impact });
+          A.play(this.world.player.rolling ? 'rollLand' : 'land', { impact: e.impact });
           break;
         case 'dash':
           A.play('dash');

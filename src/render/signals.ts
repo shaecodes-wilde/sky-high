@@ -1,4 +1,4 @@
-import type { AnimName } from '../config/animation';
+import { chooseSkyflowAnim, readSkyflowVisual, type AnimName, type SkyflowVisualState } from '../config/animation';
 import type { World, WorldEvent } from '../sim/World';
 
 // The presentation adapter: the ONLY place the renderer reads player/controller
@@ -44,6 +44,8 @@ export interface MotionSignals {
   sinceSkim: number;
   dead: boolean;
   complete: boolean;
+  /** Cloud Curl rolling state (movement PR #4), read through its own adapter. */
+  skyflow: SkyflowVisualState | null;
 
   // One-shot pulses accumulated since the previous rendered frame.
   dashStarted: boolean;
@@ -84,6 +86,7 @@ export class PresentationSignals {
     sinceSkim: 99,
     dead: false,
     complete: false,
+    skyflow: null,
     dashStarted: false,
     dashEnded: false,
     landed: 0,
@@ -120,7 +123,10 @@ export class PresentationSignals {
     const p = world.player;
     const c = p.cfg;
     const run = Math.max(1, c.runSpeed);
-    const ax = Math.abs(p.vx);
+    // Rolling on a slope stores along-surface speed differently; use the curl adapter's reading.
+    const sky = readSkyflowVisual(p);
+    s.skyflow = sky;
+    const ax = sky.rolling && p.grounded ? sky.speed : Math.abs(p.vx);
     s.speed = ax / run;
     s.overdrive = clamp01((ax - run) / Math.max(1, c.maxHorizontalSpeed - run));
     s.facing = p.facing;
@@ -184,6 +190,8 @@ export class PresentationSignals {
 export function chooseAnim(s: MotionSignals): AnimName {
   if (s.dead) return 'fail';
   if (s.complete) return s.air === 'grounded' ? 'cheer' : 'fall';
+  const roll = s.skyflow ? chooseSkyflowAnim(s.skyflow) : null;
+  if (roll) return roll;
   if (s.dashing) return 'dash';
   if (s.air !== 'grounded') {
     // A buffered jump straight off a landing still shows a frame of contact.

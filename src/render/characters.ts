@@ -1,4 +1,4 @@
-import { FRAME_H, FRAME_NAMES, FRAME_W } from '../config/animation';
+import { FRAME_H, FRAME_NAMES, FRAME_W, ROLL_VISUAL } from '../config/animation';
 import { ACCENT, EARTH, INK, PAPER } from './palette';
 import { hex, Pix, type RGBA } from './pixel';
 
@@ -1068,8 +1068,10 @@ function rollInner(id: CharacterId, p: Pix): void {
     p.hline(Math.round(RCX - 1), Math.round(RCX + 4), Math.round(RCY + 1), SP.stache);
     p.px(Math.round(RCX - 2), Math.round(RCY), SP.stache);
     p.px(Math.round(RCX + 5), Math.round(RCY), SP.stache);
-    p.ellipse(RCX + 2.5, RCY - 2, 1.4, 1.4, SP.monocle);
-    p.px(Math.round(RCX + 2.5), Math.round(RCY - 2), SP.eye);
+    // Monocle: gold rim around a pale lens so it reads apart from the duck gold.
+    p.ellipse(RCX + 2.5, RCY - 2, 1.6, 1.6, SP.monocle);
+    p.px(Math.round(RCX + 2.5), Math.round(RCY - 2), SP.lens);
+    p.px(Math.round(RCX + 3.5), Math.round(RCY - 2), SP.eye);
     p.rect(Math.round(RCX - 3), Math.round(RCY - 6), 6, 2, SP.hat);
     p.hline(Math.round(RCX - 3), Math.round(RCX + 2), Math.round(RCY - 4), SP.band);
     p.hline(Math.round(RCX - 6), Math.round(RCX - 3), Math.round(RCY + 5), SP.duckS);
@@ -1107,9 +1109,9 @@ function rollFrame(id: CharacterId, pose: RollPose, phase: number): Pix {
   if (pose === 'rollPump' || pose === 'rollPerfect') {
     // A success mark that needs no particles or sound.
     const y = 12 + Math.round(squash * 18);
-    res.hline(7, 11, y, ACCENT.mint);
-    res.px(12, y - 1, ACCENT.mintHi);
-    if (pose === 'rollPerfect') res.px(14, 13, ACCENT.mintHi);
+    res.hline(7, 11, y, ROLL_VISUAL.mint);
+    res.px(12, y - 1, ROLL_VISUAL.mintLight);
+    if (pose === 'rollPerfect') res.px(14, 13, ROLL_VISUAL.mintLight);
   }
   if (pose === 'rollFast') {
     // Two carved speed gouges on the trailing side.
@@ -1158,6 +1160,12 @@ export function buildCharacter(id: CharacterId): CharacterSheet {
   }
   return { id, frames };
 }
+
+/** Identity-feature colours that must survive every roll phase (used by presentation tests). */
+export const ROLL_KEY_COLOURS = {
+  poppy: { spots: PO.spot, braid: [PO.hair, PO.hairD] },
+  puddlewick: { hat: SP.hat, duck: SP.duck, monocle: SP.lens, moustache: SP.stache },
+} as const;
 
 /** Dev/preview: the Cloud Curl frames for one character, even before the mechanic lands. */
 export function buildRollPreview(id: CharacterId): Map<string, Pix> {

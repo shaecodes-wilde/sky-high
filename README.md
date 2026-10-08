@@ -27,6 +27,8 @@ The build output in `dist/` is a fully static site: no backend, no keys. Host it
 | Action | Keys |
 | --- | --- |
 | Move | `A` / `D` or `←` / `→` |
+| Cloud Curl | Hold `S` / `↓`; release to uncurl when there is room |
+| Directional pump | While rolling, coast then re-press the direction of travel near a bowl's bottom |
 | Jump (hold for higher) | `Space` |
 | Air dash | Double-tap a direction while airborne, or `Shift` (remappable) |
 | Pause | `Esc` or `P` |
@@ -66,6 +68,26 @@ For the eight-section developer playground, run `npm run dev` and open
 `http://localhost:5173/?playground`. It has velocity/timer telemetry, section
 resets, fixed-step input recording/replay and trajectory comparison. It is
 excluded from production builds and Time Trial records.
+
+### Cloud Curl and Skyflow
+
+Cloud Curl carries earned momentum over actual curved terrain. Hold Down to
+roll, steer or brake, coast and re-press forward near a valley bottom to pump,
+then combine ramp launches, roll jumps, air dashes, rings and cloud skims.
+Level 1 adds an optional connected Skyway while keeping its ordinary route.
+
+Open `/?skyflow` on the development server for the isolated **Skyflow Laboratory**.
+It offers seven named zones, section resets, movement telemetry and fixed-step
+input recording/replay. Development sections never submit Time Trial records;
+the Laboratory is excluded from production builds.
+
+The permanent standards are [movement design](docs/MOVEMENT_DESIGN.md),
+[physics and tuning](docs/CLOUD_CURL_PHYSICS.md),
+[level authoring](docs/LEVEL_DESIGN_STANDARD.md),
+[animation and art replacement](docs/ANIMATION_STANDARD.md), and
+[Laboratory usage](docs/SKYFLOW_LABORATORY.md).
+See the [implementation report](docs/SKYFLOW_IMPLEMENTATION_REPORT.md) for measured
+route outcomes, verification evidence and remaining human playtesting needs.
 
 ## Project layout
 

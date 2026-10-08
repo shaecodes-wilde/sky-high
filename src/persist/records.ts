@@ -11,7 +11,7 @@ export interface KVStore {
 
 export interface RunRecord {
   bestTime: number | null;
-  /** Split times at each checkpoint for the best run. */
+  /** Split times at each ordered progression gate for the best run. */
   bestSplits: (number | null)[];
   /** Fastest time ever recorded for each individual segment (for comparisons). */
   bestSegments: (number | null)[];
@@ -19,9 +19,12 @@ export interface RunRecord {
 }
 
 const STORAGE_KEY = 'cloudbloom.records.v1';
+// Respawn-marker splits and route-wide progression gates are different rules.
+// Retain existing storage/settings while keeping their records incomparable.
+export const TIME_TRIAL_RULES_VERSION = 2;
 
 export function recordKey(levelId: string, assist: AssistMode): string {
-  return `${levelId}|rules${MOVEMENT_RULES_VERSION}|assist-${assist}`;
+  return `${levelId}|rules${MOVEMENT_RULES_VERSION}|trial${TIME_TRIAL_RULES_VERSION}|assist-${assist}`;
 }
 
 function loadAll(store: KVStore): Record<string, RunRecord> {
@@ -60,6 +63,14 @@ export interface SubmitResult {
 }
 
 export function submitCleanRun(store: KVStore, key: string, time: number, splits: (number | null)[]): SubmitResult {
+  let previous = 0;
+  if (!Number.isFinite(time) || time <= 0) throw new Error('A clean run needs a positive finite finish time');
+  for (const split of splits) {
+    if (split === null || !Number.isFinite(split) || split <= previous || split > time) {
+      throw new Error('A clean run needs every split in progression order before its finish');
+    }
+    previous = split;
+  }
   const all = loadAll(store);
   const rec = all[key] ?? { bestTime: null, bestSplits: [], bestSegments: [], cleanRuns: 0 };
   const previousBest = rec.bestTime;

@@ -48,6 +48,15 @@ export interface PointDef {
   y: number;
 }
 
+/** A forward progression boundary, independent of a physical respawn marker.
+ * Omitted height limits cover every route above the level's fall-out plane.
+ */
+export interface SplitGateDef {
+  x: number;
+  minY?: number;
+  maxY?: number;
+}
+
 export interface KeepsakeDef extends PointDef {
   name: string;
   icon: 'teacup' | 'feather' | 'watch';
@@ -95,7 +104,10 @@ export interface LevelData {
   seeds: PointDef[];
   fragments: PointDef[];
   keepsakes: KeepsakeDef[];
+  /** Physical markers which save a safe respawn position and local sky state. */
   checkpoints: PointDef[];
+  /** Ordered Time Trial boundaries. Defaults to checkpoint x positions. */
+  splitGates?: SplitGateDef[];
   signs: SignDef[];
   npcs: NpcDef[];
   decor: DecorDef[];

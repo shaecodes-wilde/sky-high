@@ -1,5 +1,5 @@
 import { SIM_DT, type MovementConfig } from '../config/movement';
-import type { LevelData, PointDef, RingDef } from '../level/types';
+import type { LevelData, PointDef, RingDef, SplitGateDef } from '../level/types';
 import { Bloom } from './Bloom';
 import { boxesOverlap, type Solid } from './collision';
 import { Parade } from './Parade';
@@ -14,6 +14,8 @@ export type WorldEvent =
   | { type: 'fragment'; index: number; x: number; y: number }
   | { type: 'keepsake'; index: number; x: number; y: number }
   | { type: 'checkpoint'; index: number; x: number; y: number }
+  | { type: 'split'; index: number; x: number; y: number; time: number }
+  | { type: 'progressionInvalid'; reason: 'skipped split gates' }
   | { type: 'death'; x: number; y: number }
   | { type: 'respawn'; x: number; y: number }
   | { type: 'paradeStart' }
@@ -52,6 +54,8 @@ interface Snapshot {
   paradeDone: boolean;
 }
 
+export type RunInvalidReason = 'death' | 'checkpoint retry' | 'skipped split gates';
+
 export class World {
   readonly player: Player;
   readonly solids: Solid[] = [];
@@ -65,10 +69,15 @@ export class World {
   readonly fragmentsTaken: boolean[];
   readonly keepsakesTaken: boolean[];
   readonly npcTalked: boolean[];
+  readonly splitGates: readonly SplitGateDef[];
   /** Index of the latest checkpoint reached (-1 = level start). */
   checkpoint = -1;
-  /** Elapsed time at which each checkpoint was first reached this run. */
+  /** Elapsed time at each ordered progression boundary (independent of respawn). */
   splits: (number | null)[];
+  /** A missed boundary cannot be repaired into a clean run by backtracking. */
+  progressionValid = true;
+  /** Local eligibility failures; pausing/focus loss are handled by Game. */
+  runInvalidReason: RunInvalidReason | null = null;
   time = 0;
   steps = 0;
   deadTimer = 0;
@@ -79,6 +88,7 @@ export class World {
   private seedChainTimer = 0;
   private lastDashEnd = 99;
   private bridgeSolids: Solid[] = [];
+  private nextSplit = 0;
 
   constructor(
     readonly level: LevelData,
@@ -123,12 +133,26 @@ export class World {
     this.fragmentsTaken = level.fragments.map(() => false);
     this.keepsakesTaken = level.keepsakes.map(() => false);
     this.npcTalked = level.npcs.map(() => false);
-    this.splits = level.checkpoints.map(() => null);
+    this.splitGates = level.splitGates ?? level.checkpoints.map((c) => ({ x: c.x }));
+    this.splitGates.forEach((gate, i) => {
+      if (!Number.isFinite(gate.x) || (i > 0 && gate.x <= this.splitGates[i - 1].x)) {
+        throw new Error('Split gates must have strictly increasing finite x positions');
+      }
+      if (Number.isNaN(gate.minY) || Number.isNaN(gate.maxY) || (gate.minY ?? level.killY) > (gate.maxY ?? Infinity)) {
+        throw new Error('Split gate height limits must form a valid interval');
+      }
+    });
+    this.splits = this.splitGates.map(() => null);
     this.resetAll();
   }
 
   get dead(): boolean {
     return this.deadTimer > 0;
+  }
+
+  /** The full route was crossed in order; missing gates never qualify a record. */
+  get progressionComplete(): boolean {
+    return this.progressionValid && this.nextSplit === this.splitGates.length;
   }
 
   /** Fresh full-level state (new run). */
@@ -138,6 +162,9 @@ export class World {
     this.keepsakesTaken.fill(false);
     this.npcTalked.fill(false);
     this.splits.fill(null);
+    this.nextSplit = 0;
+    this.progressionValid = true;
+    this.runInvalidReason = null;
     this.checkpoint = -1;
     this.snapshot = { checkpoint: -1, paradeDone: false };
     this.time = 0;
@@ -152,6 +179,7 @@ export class World {
 
   /** Returns to the latest checkpoint with its saved local state. */
   respawn(): void {
+    this.runInvalidReason ??= 'checkpoint retry';
     this.deadTimer = 0;
     this.restoreLocal();
     const p = this.player;
@@ -271,10 +299,11 @@ export class World {
       if (i <= this.checkpoint) return;
       if (!boxesOverlap(left, bottom, p.w, p.h, c.x - 12, c.y, 24, 48)) return;
       this.checkpoint = i;
-      this.splits[i] ??= this.time;
       this.snapshot = { checkpoint: i, paradeDone: this.parade.state !== 'dormant' };
       this.events.push({ type: 'checkpoint', index: i, x: c.x, y: c.y });
     });
+
+    this.checkSplitGates();
 
     // Authored transformation trigger.
     if (this.parade.state === 'dormant' && p.x >= this.level.parade.triggerX) {
@@ -304,8 +333,37 @@ export class World {
       if (boxesOverlap(left + 1, bottom, p.w - 2, p.h - 2, h.x + 2, h.y, h.w - 4, HAZARD_H - 2)) hurt = true;
     }
     if (hurt) {
+      this.runInvalidReason ??= 'death';
       this.deadTimer = DEATH_TIME;
       this.events.push({ type: 'death', x: p.x, y: Math.max(p.y, this.level.killY + 20) });
+    }
+  }
+
+  private checkSplitGates(): void {
+    const p = this.player;
+    // Use the actual swept motion this step, rather than a marker overlap.
+    // All legitimate heights can cross a default gate, including express lanes.
+    while (this.nextSplit < this.splitGates.length) {
+      const gate = this.splitGates[this.nextSplit];
+      if (p.x < gate.x) return;
+      const crossed = p.prevX < gate.x && p.x > p.prevX;
+      const fraction = crossed ? (gate.x - p.prevX) / (p.x - p.prevX) : 0;
+      const y = p.prevY + (p.y - p.prevY) * fraction;
+      const inHeight = y + p.h >= (gate.minY ?? this.level.killY) && y <= (gate.maxY ?? Infinity);
+      if (!crossed || !inHeight) {
+        if (this.progressionValid) {
+          this.progressionValid = false;
+          this.runInvalidReason ??= 'skipped split gates';
+          this.events.push({ type: 'progressionInvalid', reason: 'skipped split gates' });
+        }
+        return;
+      }
+      const index = this.nextSplit++;
+      // Sub-step interpolation distinguishes two nearby gates crossed in the
+      // same authoritative tick. It never changes physics or the run timer.
+      const time = this.time - SIM_DT + fraction * SIM_DT;
+      this.splits[index] = time;
+      this.events.push({ type: 'split', index, x: gate.x, y, time });
     }
   }
 }

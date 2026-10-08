@@ -9,6 +9,7 @@ import { buildCharacter, type CharacterId } from './characters';
 import { Particles } from './Particles';
 import { Pix } from './pixel';
 import * as art from './props';
+import { chooseAnim, PresentationSignals, type MotionSignals } from './signals';
 
 // Three.js is only the renderer here: it draws the simulation's state at a
 // 480×270 virtual resolution into a render target, then upscales that by
@@ -97,6 +98,7 @@ export class GameRenderer {
   private sky = createSky();
   private layers: ParallaxLayer[] = createParallax();
   readonly particles = new Particles();
+  private signals = new PresentationSignals();
   private texCache = new Map<string, THREE.Texture>();
   private matCache = new Map<THREE.Texture, THREE.MeshBasicMaterial>();
   private geoCache = new Map<string, THREE.PlaneGeometry>();
@@ -401,6 +403,7 @@ export class GameRenderer {
     const P = this.particles;
     const w = this.world;
     const poppy = this.character === 'poppy';
+    this.signals.ingest(events, w);
     for (const e of events) {
       switch (e.type) {
         case 'jump':
@@ -471,6 +474,7 @@ export class GameRenderer {
 
   clearTransient(): void {
     this.particles.clear();
+    this.signals.reset();
     for (const b of this.bubbles) this.removeBubble(b);
     this.bubbles.length = 0;
     this.afterimages.forEach((a) => {
@@ -623,7 +627,8 @@ export class GameRenderer {
     for (const m of this.npcMeshes) (m.material as THREE.MeshBasicMaterial).map = this.npcFrames.get(npcFrame) ?? null;
 
     // Player.
-    this.updatePlayer(input, dt, bloom);
+    const sig = this.signals.update(w, dt);
+    this.updatePlayer(input, dt, bloom, sig);
 
     // Bubbles.
     for (const b of this.bubbles) {
@@ -652,33 +657,16 @@ export class GameRenderer {
     this.renderer.autoClear = true;
   }
 
-  private chooseAnim(w: World): AnimName {
-    const p = w.player;
-    if (w.dead) return 'fail';
-    if (w.complete) return p.grounded ? 'cheer' : 'fall';
-    if (p.dashing) return 'dash';
-    if (!p.grounded) {
-      if (p.ascent === 'spring' && p.vy > 120) return 'rebound';
-      if (p.vy > 70) return 'jump';
-      if (p.vy > -70) return 'apex';
-      return 'fall';
-    }
-    if (p.sinceLand < 0.08) return 'land';
-    if (p.braking) return 'brake';
-    if (Math.abs(p.vx) > 12) return p.groundTime < 0.1 && Math.abs(p.vx) < p.cfg.runSpeed * 0.5 ? 'start' : 'run';
-    return 'idle';
-  }
-
-  private updatePlayer(input: RenderInput, dt: number, bloom: number): void {
+  private updatePlayer(input: RenderInput, dt: number, bloom: number, sig: MotionSignals): void {
     const w = input.world;
     const p = w.player;
     const m = this.player;
     m.visible = input.showPlayer && !(w.dead && w.deadTimer < 0.4);
-    const name = this.chooseAnim(w);
+    const name = chooseAnim(sig);
     if (name !== this.anim.name) this.anim = { name, t: 0 };
     let fps = ANIMS[name].fps;
     if (name === 'run') {
-      const k = Math.abs(p.vx) / p.cfg.runSpeed;
+      const k = sig.speed;
       fps = Math.min(RUN_FPS_RANGE[1], Math.max(RUN_FPS_RANGE[0], ANIMS.run.fps * k));
     }
     this.anim.t += dt * fps;

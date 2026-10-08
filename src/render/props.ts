@@ -101,20 +101,21 @@ export function drawCloud(w: number, recovery: boolean, seed: number): Pix {
   }
   // Precomputed masks: nearest lobe per pixel and the belly silhouette.
   const LI = new Int16Array(w * H).fill(-1);
-  for (let y = 4; y < H - 1; y++) {
-    for (let x = 0; x < w; x++) {
-      let bd = 2;
-      lobes.forEach((l, k) => {
+  const LD = new Float32Array(w * H).fill(2);
+  lobes.forEach((l, k) => {
+    for (let y = Math.max(4, Math.floor(l.cy - l.ry)); y <= Math.min(H - 2, Math.ceil(l.cy + l.ry)); y++) {
+      for (let x = Math.max(0, Math.floor(l.cx - l.rx)); x <= Math.min(w - 1, Math.ceil(l.cx + l.rx)); x++) {
         const dx = (x + 0.5 - l.cx) / l.rx;
         const dy = (y + 0.5 - l.cy) / l.ry;
         const dd = dx * dx + dy * dy;
-        if (dd <= 1 && dd < bd) {
-          bd = dd;
-          LI[y * w + x] = k;
+        const i = y * w + x;
+        if (dd <= 1 && dd < LD[i]) {
+          LD[i] = dd;
+          LI[i] = k;
         }
-      });
+      }
     }
-  }
+  });
   const inLobe = (x: number, y: number): Lobe | null => {
     const k = LI[y * w + x];
     return k >= 0 ? lobes[k] : null;
@@ -135,6 +136,26 @@ export function drawCloud(w: number, recovery: boolean, seed: number): Pix {
       M[y * w + x] = y <= 3 || (y <= 11 && x >= inset(y) && x <= w - 1 - inset(y)) || LI[y * w + x] >= 0 ? 1 : 0;
     }
   }
+  // Fill any pocket between lobes so the belly has no interior holes (they'd outline as dark dashes).
+  const holes: number[] = [];
+  const colLast = new Int16Array(w).fill(-1);
+  const rowFirst = new Int16Array(H).fill(w);
+  const rowLast = new Int16Array(H).fill(-1);
+  for (let y = 0; y < H - 1; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!M[y * w + x]) continue;
+      colLast[x] = y;
+      if (x < rowFirst[y]) rowFirst[y] = x;
+      rowLast[y] = x;
+    }
+  }
+  for (let y = 5; y < H - 2; y++) {
+    for (let x = rowFirst[y] + 1; x < rowLast[y]; x++) {
+      const i = y * w + x;
+      if (!M[i] && y < colLast[x]) holes.push(i);
+    }
+  }
+  for (const i of holes) M[i] = 1;
   const mask = (x: number, y: number): boolean => x >= 0 && x < w && y >= 0 && y < H && M[y * w + x] === 1;
 
   for (let y = 0; y < H; y++) {
@@ -196,8 +217,8 @@ export function drawCloud(w: number, recovery: boolean, seed: number): Pix {
 export function drawIsland(w: number, h: number, seed: number): Pix {
   const p = new Pix(w, h);
   const r = rng(seed * 104729 + w * 7 + h);
-  const S = [EARTH.stoneHi, EARTH.stone, EARTH.stoneMid, EARTH.stoneLow, EARTH.stoneDeep].map(C);
-  const line = C(INK.line);
+  // Face ramp compressed toward the mid tones: the stone stays calm so the meadow lip owns the contrast.
+  const S = [mix(EARTH.stoneHi, EARTH.stone, 0.55), EARTH.stone, mix(EARTH.stone, EARTH.stoneMid, 0.6), mix(EARTH.stoneMid, EARTH.stoneLow, 0.45), EARTH.stoneLow].map(C);
   // Islands hang from their top down to y=-120; keep honest stone down to
   // about y=-30 (below that is the fall-out zone, killY=-60), then mist.
   const mistTop = clamp(h - 90, 56, h - 40);
@@ -298,64 +319,57 @@ export function drawIsland(w: number, h: number, seed: number): Pix {
   }
   const dissolveA = mistTop + 6;
 
-  // Main fill.
+  // Main fill (packed 32-bit writes; this is the hot loop of level load).
   const tone = new Uint8Array(w * h);
   const d = p.data;
-  const mh = C(EARTH.meadowHi);
-  const mm = C(EARTH.meadow);
-  const mmid = C(EARTH.meadowMid);
-  const mlow = C(EARTH.meadowLow);
-  const mdeep = C(EARTH.meadowDeep);
-  const mistLo = C(CLOUD.low);
-  const mistMid = C(CLOUD.mid);
-  const mistHi = C(CLOUD.light);
+  const d32 = new Uint32Array(d.buffer, d.byteOffset, w * h);
+  const S32 = S.map(U);
+  const [mh, mm, mmid, mlow, mdeep, mistLo, mistMid, mistHi, line32] = [EARTH.meadowHi, EARTH.meadow, EARTH.meadowMid, EARTH.meadowLow, EARTH.meadowDeep, CLOUD.low, CLOUD.mid, CLOUD.light, INK.line].map((c) => U(C(c)));
+  const nb = bands.length;
   for (let x = 0; x < w; x++) {
     let b = 0;
-    const bl = bot[x] + blade[x];
+    const bx = bot[x];
+    const bl = bx + blade[x];
+    const ctx = ct[x];
+    const edge = x === 0 || x === w - 1;
+    const rim = x > 0 && x <= 2 ? -1 : x >= w - 3 ? 1 : 0;
     for (let y = 0; y < mistEnd; y++) {
-      while (b + 1 < bands.length && y >= bands[b + 1].top[x]) b++;
-      const i = (y * w + x) * 4;
-      let c: RGBA;
+      while (b + 1 < nb && y >= bands[b + 1].top[x]) b++;
+      const i = y * w + x;
       if (y < bl) {
         // Meadow lip + overhang.
+        let c: number;
         if (y <= 1) c = mh;
-        else if (x === 0 || x === w - 1) c = mdeep;
-        else if (y >= bot[x]) c = y === bl - 1 ? mlow : mmid; // hanging blade
+        else if (edge) c = mdeep;
+        else if (y >= bx) c = y === bl - 1 ? mlow : mmid; // hanging blade
         else if (y === 2) c = (x * 5 + seed) % 11 === 0 ? mh : mm;
         else if (y === 3) c = mm;
-        else if (y === bot[x] - 1) c = mlow;
+        else if (y === bx - 1) c = mlow;
         else c = mmid;
-        put(d, i, c);
+        d32[i] = c;
         continue;
       }
-      if (y >= ct[x]) {
+      if (y >= ctx) {
         // Cloud-mist collar, dissolving downward.
-        if (y >= dissolveA && BAYER[(y & 3) * 4 + (x & 3)] < ((y - dissolveA + 1) / (mistEnd - dissolveA)) * 1.05) {
-          put(d, i, null);
-          continue;
-        }
-        const j = y - ct[x];
-        put(d, i, j === 0 ? mistHi : j === 3 + ((x >> 3) & 1) ? mistLo : y > mistTop + 14 ? mistHi : mistMid);
+        if (y >= dissolveA && BAYER[(y & 3) * 4 + (x & 3)] < ((y - dissolveA + 1) / (mistEnd - dissolveA)) * 1.05) continue;
+        const j = y - ctx;
+        d32[i] = j === 0 ? mistHi : j === 3 + ((x >> 3) & 1) ? mistLo : y > mistTop + 14 ? mistHi : mistMid;
         continue;
       }
       // Stone.
       const band = bands[b];
-      const j = y - band.top[x];
-      const next = b + 1 < bands.length ? bands[b + 1].top[x] : h + 99;
+      const next = b + 1 < nb ? bands[b + 1].top[x] : h + 99;
       let t = band.tone;
-      if (j === 0 && band.lit[x] && !band.thin) t -= 1;
+      if (y === band.top[x] && band.lit[x] && !band.thin) t -= 1;
       else if (y === next - 1 && !band.thin) t += 1;
-      if (band.thin && (x + b * 7) % 29 < 3) t = bands[Math.max(0, b - 1)].tone; // laminae print broken
-      if (y >= bot[x] && y <= bot[x] + 1) t = Math.max(t, band.tone) + 1; // overhang shadow
-      if (y >= ct[x] - 2) t += 1; // shadow above the mist
-      if (x <= 2 && y > 6 && x > 0) t -= 1; // lit left rim
-      if (x >= w - 3 && y > 6) t += 1; // shaded right rim
-      t += mod[y * w + x];
-      t = clamp(t, 0, 3);
-      tone[y * w + x] = t;
-      c = S[t];
-      if (x === 0 || x === w - 1) c = line;
-      put(d, i, c);
+      if (band.thin && (x + b * 7) % 29 < 3) t = bands[b > 0 ? b - 1 : 0].tone; // laminae print broken
+      if (y >= bx && y <= bx + 1) t = (t > band.tone ? t : band.tone) + 1; // overhang shadow
+      if (y >= ctx - 2) t += 1; // shadow above the mist
+      if (y > 6) t += rim; // lit left rim, shaded right rim
+      t += mod[i];
+      t = t < 0 ? 0 : t > 3 ? 3 : t;
+      tone[i] = t;
+      d32[i] = edge ? line32 : S32[t];
     }
   }
 
@@ -638,7 +652,7 @@ export function drawThistles(w: number, seed: number): Pix {
     px(p, x, 12, INK.plum);
   }
   p.hline(0, W - 1, 13, INK.plum);
-  const n = Math.max(1, Math.round((w - 2) / 8));
+  const n = Math.max(1, Math.round((w - 2) / 10));
   const heads: [number, number][] = [];
   for (let i = 0; i < n; i++) {
     const hx = 1 + Math.round(((i + 0.5) * w) / n);
@@ -662,7 +676,7 @@ export function drawThistles(w: number, seed: number): Pix {
       const a = rot + (k / 9) * Math.PI * 2;
       const up = Math.sin(a) < 0.3;
       if (!up && k % 2) continue;
-      const L = up ? 5 + (k % 2) : 4;
+      const L = up ? 5.5 + (k % 2) : 4;
       body.line(hx + 0.5 + Math.cos(a) * 2.6, hy + 0.5 + Math.sin(a) * 2.6, hx + 0.5 + Math.cos(a) * L, hy + 0.5 + Math.sin(a) * L, INK.ink, 1);
     }
     // Sting-pink glint on the burr and one spike tip.
@@ -1057,12 +1071,14 @@ export function drawGiantFlower(open: number): Pix {
     { n: 10, base: 3, len: 8 + o * 15, wid: 3 + o * 5, rot: Math.PI / 10 - o * 0.2, fill: ACCENT.petalHi, edge: ACCENT.petal, vein: ACCENT.petal, hi: PAPER.butter, front: false },
   ];
   const disc = 7 + o * 7;
+  const maxR = layers[0].base + layers[0].len + 1;
   const halfW = (u: number, W: number) => (u < 0.55 ? W * Math.pow(Math.sin((u / 0.55) * (Math.PI / 2)), 0.8) : W * Math.sqrt(Math.max(0, 1 - ((u - 0.55) / 0.45) ** 2)));
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
       const dx = x + 0.5 - c;
       const dy = y + 0.5 - c;
       const rad = Math.hypot(dx, dy);
+      if (rad > maxR) continue;
       const ang = Math.atan2(dy, dx);
       let col: string | null = null;
       for (let li = layers.length - 1; li >= 0 && !col; li--) {
@@ -1098,12 +1114,14 @@ export function drawGiantFlower(open: number): Pix {
   for (let k = 0; k < front.n; k++) {
     const a = front.rot + (k * Math.PI * 2) / front.n;
     if (o < 0.7) {
-      const rr = front.base + front.len * 0.8;
-      const rc = 1.8 + (0.7 - o) * 5;
+      if (k % 2) continue;
+      const rr = front.base + front.len * 0.78;
+      const rc = 2.6 + (0.7 - o) * 5;
       for (const [x, y] of curl(c + Math.cos(a) * rr, c + Math.sin(a) * rr, rc, 1, 1, a + Math.PI)) px(p, x, y, ACCENT.petalDeep);
     } else {
-      const rr = disc + 5 + (k % 2) * 2;
-      const pts = curl(c + Math.cos(a) * rr, c + Math.sin(a) * rr, 2.6, 1, 1, a);
+      if (k % 2) continue;
+      const rr = disc + 7;
+      const pts = curl(c + Math.cos(a) * rr, c + Math.sin(a) * rr, 3.4, 1, 1, a);
       carve(p, pts, ACCENT.petalLo, PAPER.butter, (x, y) => p.opaque(x, y) && Math.hypot(x + 0.5 - c, y + 0.5 - c) > disc + 1);
     }
   }
@@ -1120,6 +1138,7 @@ export function drawGiantFlower(open: number): Pix {
       for (let x = 0; x < S; x++) {
         if (p.opaque(x, y)) continue;
         const rad = Math.hypot(x + 0.5 - c, y + 0.5 - c);
+        if (rad < outer - 1 || rad > outer + 4) continue;
         const ang = Math.atan2(y + 0.5 - c, x + 0.5 - c);
         for (let i = 0; i < 2; i++) {
           const rr = outer + i * 2.5;
@@ -1259,6 +1278,11 @@ function C(c: string): RGBA {
     RGBA_CACHE.set(c, v);
   }
   return v;
+}
+
+/** Packs an RGBA into a little-endian 32-bit pixel. */
+function U(c: RGBA): number {
+  return ((c[3] << 24) | (c[2] << 16) | (c[1] << 8) | c[0]) >>> 0;
 }
 
 /** Fast raw write at a byte index (null clears). */

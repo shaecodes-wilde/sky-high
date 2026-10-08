@@ -1,11 +1,12 @@
 // Default keyboard bindings (KeyboardEvent.code values). The dash key is
 // remappable from the settings panel and persisted with the other settings.
 
-export type Action = 'left' | 'right' | 'jump' | 'dash' | 'pause' | 'checkpoint' | 'fullRestart' | 'mute';
+export type Action = 'left' | 'right' | 'roll' | 'jump' | 'dash' | 'pause' | 'checkpoint' | 'fullRestart' | 'mute';
 
 export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   left: ['KeyA', 'ArrowLeft'],
   right: ['KeyD', 'ArrowRight'],
+  roll: ['KeyS', 'ArrowDown'],
   jump: ['Space'],
   dash: ['ShiftLeft', 'ShiftRight'],
   pause: ['Escape', 'KeyP'],

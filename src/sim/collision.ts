@@ -259,7 +259,7 @@ export function moveGrounded(solids: readonly Solid[], b: Body, dx: number, spee
   if (dx === 0) return { hit: null, contact, separated: false };
   let remaining = dx;
   const maxStep = Math.max(0.05, Math.min(0.5, b.w / 4, b.h / 4));
-  while (Math.abs(remaining) > EPS) {
+  while (Math.abs(remaining) > 1e-12) {
     if (allowLaunch && losesNormalForce(contact, speed, gravity)) return leaveSurface(solids, b, remaining, contact);
     let step = Math.sign(remaining) * Math.min(Math.abs(remaining), maxStep);
     let next = continuedSupport(solids, { ...b, x: b.x + step }, contact);

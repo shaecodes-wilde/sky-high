@@ -57,6 +57,7 @@ describe('analytic authored terrain', () => {
     expect(() => terrainToSolid({ ...def, knots: [def.knots[1], def.knots[0]] })).toThrow();
     expect(() => terrainToSolid({ ...def, bottom: 10 })).toThrow();
     expect(() => terrainToSolid({ ...def, knots: [{ ...def.knots[0], slope: NaN }, def.knots[1]] })).toThrow();
+    expect(() => terrainToSolid({ ...def, bottom: -20, knots: [{ x: 0, y: 0, slope: -2 }, { x: 100, y: 0, slope: 2 }] })).toThrow();
   });
 
   it('gives a substantial bowl one stable valley identity and depth', () => {
@@ -75,6 +76,19 @@ describe('analytic authored terrain', () => {
     expect(terrainValleys({ ...bowl(1), knots: [{ x: 0, y: 1, slope: -0.04 }, { x: 50, y: 0, slope: 0 }, { x: 100, y: 1, slope: 0.04 }] })).toEqual([]);
     const gentle: TerrainDef = { ...bowl(), knots: [{ x: 0, y: 10, slope: -0.02 }, { x: 1000, y: 0, slope: 0 }, { x: 2000, y: 10, slope: 0.02 }] };
     expect(terrainValleys(gentle)).toEqual([]);
+  });
+
+  it('identifies distinct valleys on a shared terrain without collision-step-dependent IDs', () => {
+    const def: TerrainDef = {
+      id: 2010, kind: 'island', bottom: -60, pump: true,
+      knots: [{ x: 0, y: 30, slope: 0 }, { x: 50, y: 0, slope: 0 }, { x: 100, y: 30, slope: 0 }, { x: 150, y: 0, slope: 0 }, { x: 200, y: 30, slope: 0 }],
+    };
+    const valleys = terrainValleys(def);
+    expect(valleys).toHaveLength(2);
+    expect(valleys.map((v) => v.x)).toEqual([50, 150]);
+    expect(new Set(valleys.map((v) => v.id)).size).toBe(2);
+    expect(valleys[0]).toMatchObject({ leftX: 0, rightX: 100, depth: 30 });
+    expect(valleys[1]).toMatchObject({ leftX: 100, rightX: 200, depth: 30 });
   });
 });
 
@@ -150,6 +164,24 @@ describe('curve collision and feet anchoring', () => {
     expect(sweepY([solid], b, -100, 0).hit).toBeNull();
     expect(b.y).toBe(-95);
   });
+
+  it('lands on an interior cubic crest even when all authored knot heights are lower', () => {
+    const def: TerrainDef = { id: 2020, kind: 'cloud', bottom: -10, knots: [{ x: 0, y: 0, slope: 2 }, { x: 100, y: 0, slope: -2 }] };
+    const solid = terrainToSolid(def);
+    const b = body(50, 100, 30);
+    expect(sweepY([solid], b, -150, 0).landed).toBe(true);
+    expect(b.y).toBe(50);
+    expect(surfaceContact([solid], b)).toMatchObject({ x: 50, y: 50, slope: 0 });
+  });
+
+  it('ignores inactive curve geometry across every collision boundary', () => {
+    const solid = { ...terrainToSolid(ramp()), active: false };
+    const b = body(40, 100);
+    expect(sweepY([solid], b, -200, 0).hit).toBeNull();
+    expect(sweepX([solid], b, 200, 0).hit).toBeNull();
+    expect(blocked([solid], 40, -30, 10, 22)).toBe(false);
+    expect(surfaceContact([solid], on(solid, 40))).toBeNull();
+  });
 });
 
 describe('grounded connectivity and physical launches', () => {
@@ -212,6 +244,37 @@ describe('grounded connectivity and physical launches', () => {
     const b = on(solid, 35);
     expect(moveGrounded([solid], b, 20, 300, 1250, false).separated).toBe(false);
     expect(groundUnder([solid], b)).toBe(solid);
+  });
+
+  it('makes normal-force separation direction symmetric', () => {
+    const solid = terrainToSolid(crest());
+    const right = on(solid, 35);
+    const left = on(solid, 65);
+    const forward = moveGrounded([solid], right, 20, 300, 1250, true);
+    const reverse = moveGrounded([solid], left, -20, -300, 1250, true);
+    expect(forward.separated).toBe(true);
+    expect(reverse.separated).toBe(true);
+    expect(right.y).toBeCloseTo(left.y, 8);
+    expect(right.x + left.x).toBeCloseTo(100, 8);
+    expect(forward.contact!.slope).toBeCloseTo(-reverse.contact!.slope, 8);
+  });
+
+  it('respects the physical speed threshold rather than launching every crest', () => {
+    const solid = terrainToSolid(crest());
+    const initial = on(solid, 50);
+    const contact = surfaceContact([solid], initial)!;
+    const threshold = Math.sqrt(1250 * contact.normal.y / -contact.curvature);
+    const slow = { ...initial };
+    const fast = { ...initial };
+    expect(moveGrounded([solid], slow, 0.1, threshold - 0.01, 1250, true).separated).toBe(false);
+    expect(moveGrounded([solid], fast, 0.1, threshold + 0.01, 1250, true).separated).toBe(true);
+  });
+
+  it('preserves tiny legitimate ground movement instead of treating tolerance as a deadzone', () => {
+    const flat = box(-100, -50, 200, 50);
+    const b = body(0, 0);
+    expect(moveGrounded([flat], b, 0.00005, 0.003, 1250, true).separated).toBe(false);
+    expect(b.x).toBeCloseTo(0.00005, 12);
   });
 
   it('leaves real gaps and never snaps onto a lower disconnected surface', () => {

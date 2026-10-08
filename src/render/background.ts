@@ -276,7 +276,7 @@ void main() {
     float wv = 0.35 * sin(an * 7.0 - uTime * 0.4) * smoothstep(20.0, 140.0, r);
     // Waveform rings travel outward in pulses (every third ring is inked) and
     // thin out with distance, so the edition stays a frame, not a wallpaper.
-    float amt = 0.5 * sp * inReach * smoothstep(Rf * 0.55, Rf * 0.85, r) * (1.0 - smoothstep(200.0, 340.0, r));
+    float amt = 0.46 * sp * sp * inReach * smoothstep(Rf * 0.55, Rf * 0.85, r) * (1.0 - smoothstep(200.0, 340.0, r));
     vec2 o1 = vec2(1.0, 0.0), o2 = vec2(0.0, -1.0), o3 = vec2(-1.0, 1.0);
     float rM = length(pc + o3 - uFlower), rP = length(pc + o2 - uFlower), rG = length(pc + o1 - uFlower);
     float ph = uTime * 0.25;
@@ -654,8 +654,8 @@ interface BankStyle {
   plateAt: number;
 }
 
-const MID: BankStyle = { body: '#bfa8e5', rim: '#d0bff0', groove: '#ab95da', lip: '#c9b7ed', deep: '#b7a0e1', plate: Plate.Petal, plateAt: 0.58 };
-const NEAR: BankStyle = { body: '#a08bd3', rim: '#b5a2e2', groove: '#8c77c5', lip: '#ab97dd', deep: '#9682cc', plate: Plate.Mint, plateAt: 0.66 };
+const MID: BankStyle = { body: '#bfa8e5', rim: '#d0bff0', groove: '#ab95da', lip: '#c9b7ed', deep: '#b7a0e1', plate: Plate.Petal, plateAt: 0.68 };
+const NEAR: BankStyle = { body: '#a08bd3', rim: '#b5a2e2', groove: '#8c77c5', lip: '#ab97dd', deep: '#9682cc', plate: Plate.Mint, plateAt: 0.76 };
 
 interface BankRow {
   y0: number;

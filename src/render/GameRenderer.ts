@@ -155,6 +155,8 @@ export class GameRenderer {
   private scale = 1;
   private viewport = { x: 0, y: 0, w: VIEW_W, h: VIEW_H };
   private wakeTimer = 0;
+  private paradeRingTimer = 0;
+  private lastReveal = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     THREE.ColorManagement.enabled = false;
@@ -513,6 +515,7 @@ export class GameRenderer {
   }
 
   clearTransient(): void {
+    this.lastReveal = 0;
     this.particles.clear();
     this.bursts.clear();
     this.signals.reset();
@@ -645,6 +648,7 @@ export class GameRenderer {
       this.particles.emit('sparkle', this.level.parade.flower.x + Math.cos(a) * 30, this.level.parade.flower.y + Math.sin(a) * 30, 1, -Math.cos(a), -Math.sin(a));
     }
     if (parade.state === 'active' && Math.abs(parade.t - 1.5) < dt) this.shake = Math.max(this.shake, 0.5 * pres.shake);
+    this.paradeChoreography(sig, dt, cx, cy, pres);
     const ba = parade.bridgeAlpha;
     for (const m of this.bridgeMeshes) {
       (m.material as THREE.MeshBasicMaterial).opacity = ba;
@@ -702,6 +706,38 @@ export class GameRenderer {
     this.renderer.autoClear = false;
     this.renderer.render(this.blitScene, this.blitCam);
     this.renderer.autoClear = true;
+  }
+
+  /**
+   * The Petal Parade as staged music: the reveal strikes a great ring out of
+   * the flower, the peak keeps time with slower rings and a drifting petal
+   * shower, and the release thins to a few petals in the afterglow.
+   */
+  private paradeChoreography(sig: MotionSignals, dt: number, cx: number, cy: number, pres: Presentation): void {
+    const pr = sig.parade;
+    const f = this.level.parade.flower;
+    if (pr.reveal > 0 && this.lastReveal === 0 && pr.active) {
+      this.bursts.spawn('bloomRing', f.x, f.y);
+      this.particles.emit('confetti', f.x, f.y, 24);
+    }
+    this.lastReveal = pr.reveal;
+    if (!pr.active) {
+      this.paradeRingTimer = 0;
+      return;
+    }
+    if (pr.reveal >= 1 && pr.intensity > 0.8) {
+      this.paradeRingTimer -= dt;
+      if (this.paradeRingTimer <= 0) {
+        this.paradeRingTimer = 1.6;
+        this.bursts.spawn('bloomRing', f.x, f.y);
+      }
+    }
+    // Petal shower across the top of the view, thinning as the parade releases.
+    const rate = pr.intensity * 14 * pres.particles * pres.spectacle;
+    if (Math.random() < rate * dt) {
+      const x = cx - VIEW_W / 2 + Math.random() * VIEW_W;
+      this.particles.emit('shower', x, cy + VIEW_H / 2 + 4, 1, 0.5, -1);
+    }
   }
 
   private updatePlayer(input: RenderInput, dt: number, bloom: number, sig: MotionSignals): void {

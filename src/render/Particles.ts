@@ -4,7 +4,7 @@ import { hex } from './pixel';
 
 // Pooled square-pixel particles in a single draw call. Purely cosmetic.
 
-export type ParticleKind = 'dust' | 'petal' | 'spore' | 'droplet' | 'sparkle' | 'puff' | 'dew' | 'gold' | 'confetti' | 'wake' | 'note';
+export type ParticleKind = 'dust' | 'petal' | 'spore' | 'droplet' | 'sparkle' | 'puff' | 'dew' | 'gold' | 'confetti' | 'wake' | 'note' | 'shower';
 
 interface Spec {
   colors: string[];
@@ -29,6 +29,7 @@ const SPECS: Record<ParticleKind, Spec> = {
   gold: { colors: [ACCENT.gold, ACCENT.goldHi], speed: [20, 60], up: 30, gravity: 60, life: [0.3, 0.5], size: [1, 1], drag: 2, spread: Math.PI },
   confetti: { colors: [ACCENT.petal, ACCENT.gold, ACCENT.mint, '#b8a8ff', PAPER.white], speed: [40, 120], up: 80, gravity: 70, life: [1.2, 2.2], size: [2, 2], drag: 1.2, spread: Math.PI },
   wake: { colors: [ACCENT.petal, ACCENT.gold, ACCENT.mint, PAPER.white], speed: [4, 16], up: 6, gravity: -6, life: [0.5, 0.9], size: [1, 2], drag: 1, spread: Math.PI },
+  shower: { colors: [ACCENT.petal, ACCENT.petalHi, ACCENT.petalLo, ACCENT.goldHi], speed: [6, 20], up: 0, gravity: 14, life: [3, 4.5], size: [1, 2], drag: 0.6, spread: Math.PI * 0.35 },
   note: { colors: [ACCENT.goldHi, ACCENT.petalHi, ACCENT.mintHi], speed: [6, 18], up: 14, gravity: -10, life: [0.9, 1.5], size: [1, 2], drag: 1.2, spread: Math.PI * 0.5 },
 };
 

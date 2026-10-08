@@ -6,7 +6,7 @@ import { Pix } from './pixel';
 // gouges, rebound arcs) drawn in the print language. Pooled meshes, one
 // texture swap per frame each. Purely cosmetic.
 
-export type BurstKind = 'land' | 'landHard' | 'dash' | 'spring' | 'ring' | 'checkpoint' | 'fragment' | 'jump';
+export type BurstKind = 'land' | 'landHard' | 'dash' | 'spring' | 'ring' | 'checkpoint' | 'fragment' | 'jump' | 'bloomRing';
 
 interface Def {
   frames: THREE.Texture[];
@@ -15,6 +15,8 @@ interface Def {
   h: number;
   /** Anchor: 'b' = bottom-centre at (x,y), 'c' = centred. */
   anchor: 'b' | 'c';
+  /** Optional render order (defaults to the pool's FX order). */
+  order?: number;
 }
 
 interface Live {
@@ -171,6 +173,27 @@ function buildDefs(): Record<BurstKind, Def> {
         }
       }),
     },
+    // Petal Parade: a great sound-wave ring rolling out of the giant flower.
+    bloomRing: {
+      // Behind the play plane: it belongs to the sky set piece, never in front of a landing.
+      order: 4.5,
+      w: 220,
+      h: 220,
+      anchor: 'c',
+      fps: 12,
+      frames: frames(10, 220, 220, (p, k, t) => {
+        const r = 40 + t * 66;
+        const step = t < 0.5 ? 1 : t < 0.8 ? 2 : 3;
+        ring(p, 110, 110, r, r, k < 4 ? ACCENT.goldHi : k < 7 ? ACCENT.petalHi : ACCENT.petal, step, k);
+        if (t > 0.1) ring(p, 110, 110, r - 5, r - 5, ACCENT.petal, step + 1, k + 1);
+        // Petal ticks on the ring, like notes on a circular staff.
+        for (let i = 0; i < 12; i++) {
+          if ((i + k) % 3) continue;
+          const a = (i / 12) * Math.PI * 2 + t * 0.6;
+          p.ellipse(110 + Math.cos(a) * r, 110 + Math.sin(a) * r, 1.6, 1.6, k < 6 ? ACCENT.goldHi : PAPER.cream);
+        }
+      }),
+    },
   };
 }
 
@@ -181,7 +204,10 @@ export class Bursts {
   private next = 0;
   enabled = true;
 
-  constructor(scene: THREE.Scene, renderOrder: number) {
+  constructor(
+    scene: THREE.Scene,
+    private renderOrder: number,
+  ) {
     for (let i = 0; i < POOL; i++) {
       const mesh = new THREE.Mesh(
         new THREE.PlaneGeometry(1, 1),
@@ -222,6 +248,7 @@ export class Bursts {
     const oy = d.anchor === 'c' && d.h % 2 ? 0.5 : 0;
     live.mesh.position.set(Math.round(x) + ox, Math.round(y) + oy, 0);
     live.mesh.scale.x = dir;
+    live.mesh.renderOrder = d.order ?? this.renderOrder;
     live.mesh.visible = true;
   }
 

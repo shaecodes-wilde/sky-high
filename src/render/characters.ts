@@ -1,4 +1,4 @@
-import { FRAME_H, FRAME_NAMES, FRAME_W } from '../config/animation';
+import { FRAME_H, FRAME_NAMES, FRAME_W, ROLL_PHASES, ROLL_VISUAL } from '../config/animation';
 import { Pix } from './pixel';
 
 // Both playable characters are drawn procedurally from a shared set of
@@ -386,6 +386,124 @@ function face(p: Pix, ex: number, ey: number, q: Pose, eye: string, blush: strin
   else if (q.mouth === 'smile') p.px(ex, ey + 3, shade);
 }
 
+// Curled art has its own compact silhouette. It is not a shrunken standing
+// sprite. The fixed circular outline and baseline keep phase changes stable;
+// identity features rotate inside it on a 16-phase nearest-pixel atlas.
+type RollPose = 'roll' | 'rollMedium' | 'rollFast' | 'rollPump' | 'rollPerfect' | 'rollBrake' | 'rollJump' | 'rollLand';
+const ROLL_POSES: RollPose[] = ['roll', 'rollMedium', 'rollFast', 'rollPump', 'rollPerfect', 'rollBrake', 'rollJump', 'rollLand'];
+const ROLL_CX = 11.5;
+const ROLL_CY = 22.5;
+
+function poppyCurl(p: Pix, pose: RollPose, phase: number): void {
+  // The cap wraps around Poppy's tucked knees, while the braid follows the rim.
+  p.ellipse(ROLL_CX, ROLL_CY, 8.5, 8.5, PO.capD);
+  p.ellipse(12, 22, 7, 7.2, PO.pants);
+  p.ellipse(13.5, 22, 4.2, 3.7, PO.skin);
+  p.ellipse(10, 24, 4, 3, PO.shirt);
+  p.rect(8, 26, 5, 2, PO.pantsD);
+  p.rect(7, 25, 3, 2, PO.shoe);
+  p.ellipse(10.5, 17.5, 7, 4.5, PO.cap, (_, y) => y < 20);
+  p.hline(6, 16, 19, PO.under);
+  p.rect(7, 15, 2, 2, PO.spot);
+  p.rect(12, 14, 2, 2, PO.spot);
+  p.px(16, 17, PO.spot);
+  p.hline(7, 10, 14, PO.capL);
+  const flutter = pose === 'rollFast' ? phase % 2 : 0;
+  for (let i = 0; i < 9; i++) {
+    const a = -Math.PI * 0.7 - i * 0.19;
+    const x = 12 + Math.cos(a) * (7 + flutter * 0.4);
+    const y = 22 + Math.sin(a) * 7;
+    p.rect(Math.round(x), Math.round(y), 2, 2, i === 7 ? PO.tie : i % 2 ? PO.hairD : PO.hair);
+  }
+  p.rect(9, 18, 2, 3, PO.hair);
+  p.px(15, 21, PO.eye);
+  p.px(16, 23, PO.blush);
+  p.px(15, 24, PO.skinS);
+  p.px(7, 16, PO.petal);
+  p.px(8, 17, PO.flowerY);
+  p.px(7, 18, PO.petal);
+  p.px(6, 17, PO.petal);
+  p.px(9, 18, PO.leaf);
+}
+
+function puddlewickCurl(p: Pix, pose: RollPose, phase: number): void {
+  // The duck becomes a round cushion; his hat, monocle and moustache remain
+  // attached to the same rotating face, with a tiny speed-driven hat flutter.
+  p.ellipse(ROLL_CX, ROLL_CY, 8.5, 8.5, SP.duck);
+  p.ellipse(11.5, 22, 5.8, 6, SP.skin);
+  p.hline(6, 14, 27, SP.duckS);
+  p.hline(6, 10, 16, SP.duckL);
+  p.rect(8, 25, 7, 3, SP.under);
+  p.hline(9, 14, 28, SP.underS);
+  p.ellipse(18, 23, 2.4, 3, SP.duck);
+  p.px(18, 22, SP.eye);
+  p.rect(19, 24, 2, 1, SP.beak);
+  p.px(6, 25, SP.duckL);
+  const flutter = pose === 'rollFast' ? phase % 2 : 0;
+  p.rect(8, 14 + flutter, 7, 6 - flutter, SP.hat);
+  p.hline(8, 14, 14 + flutter, SP.hatL);
+  p.rect(9, 15 + flutter, 1, 3, SP.hatL);
+  p.hline(8, 14, 18, SP.band);
+  p.hline(6, 17, 20, SP.hat);
+  p.px(14, 18, SP.petal);
+  p.px(13, 19, SP.center);
+  p.ellipse(14.5, 22, 2.1, 2, SP.monocle);
+  p.px(14, 21, SP.lens);
+  p.px(15, 22, SP.eye);
+  p.px(16, 24, SP.monocle);
+  p.px(15, 26, SP.monocle);
+  p.hline(10, 17, 24, SP.stache);
+  p.hline(12, 15, 25, SP.stacheL);
+  p.px(9, 23, SP.stache);
+  p.px(18, 23, SP.stache);
+}
+
+function rollArt(id: CharacterId, pose: RollPose, phase: number): Pix {
+  const src = new Pix(FRAME_W, FRAME_H);
+  (id === 'poppy' ? poppyCurl : puddlewickCurl)(src, pose, phase);
+  const spun = new Pix(FRAME_W, FRAME_H);
+  const angle = phase / ROLL_PHASES * Math.PI * 2;
+  const c = Math.cos(angle), s = Math.sin(angle);
+  // A stationary outer ring makes rotation legible without a wobbling footprint.
+  spun.ellipse(ROLL_CX, ROLL_CY, 9, 9, id === 'poppy' ? PO.capD : SP.duckS);
+  for (let y = 13; y <= 30; y++) for (let x = 2; x <= 21; x++) {
+    const dx = x - ROLL_CX, dy = y - ROLL_CY;
+    if (Math.hypot(dx, dy) > 8.7) continue;
+    const color = src.get(Math.round(ROLL_CX + dx * c + dy * s), Math.round(ROLL_CY - dx * s + dy * c));
+    if (color) spun.px(x, y, color);
+  }
+  spun.outline(id === 'poppy' ? PO.outline : SP.outline);
+
+  const compression = pose === 'rollPump' ? 0.17 : pose === 'rollLand' ? 0.12 : pose === 'rollBrake' ? 0.07 : 0;
+  const stretch = pose === 'rollJump' ? 0.05 : pose === 'rollPerfect' ? 0.03 : 0;
+  const result = warpAnchored(spun, 1 + compression * 0.4 - stretch * 0.4, 1 - compression + stretch);
+  if (pose === 'rollPump' || pose === 'rollPerfect') {
+    // Deliberate success mark remains visible without particles, trails or sound.
+    result.hline(7, 11, 12 + Math.round(compression * 18), ROLL_VISUAL.mint);
+    result.px(12, 11 + Math.round(compression * 18), ROLL_VISUAL.mintLight);
+    if (pose === 'rollPerfect') result.px(14, 13, ROLL_VISUAL.mintLight);
+  }
+  return result;
+}
+
+/** Pixel resampling anchored at the feet; never moves the renderer or collider. */
+function warpAnchored(src: Pix, sx: number, sy: number): Pix {
+  const out = new Pix(FRAME_W, FRAME_H);
+  for (let y = 0; y < FRAME_H; y++) for (let x = 0; x < FRAME_W; x++) {
+    const color = src.get(Math.round(ROLL_CX + (x - ROLL_CX) / sx), Math.round(31 + (y - 31) / sy));
+    if (color) out.px(x, y, color);
+  }
+  return out;
+}
+
+function curlTransition(id: CharacterId, index: number): Pix {
+  const p = new Pix(FRAME_W, FRAME_H);
+  const t = (index + 1) / 4;
+  const q = pose({ by: 1, squash: 1, lean: 0, legs: [L(-1, 0), L(1, 0)], arms: [L(-1, 4), L(1, 4)], braid: 15 + t * 60 });
+  (id === 'poppy' ? drawPoppy : drawPuddlewick)(p, q);
+  return warpAnchored(p, 1, 1 - t * 0.36);
+}
+
 export interface CharacterSheet {
   id: CharacterId;
   frames: Map<string, Pix>;
@@ -395,8 +513,13 @@ export function buildCharacter(id: CharacterId): CharacterSheet {
   const frames = new Map<string, Pix>();
   for (const name of FRAME_NAMES) {
     const p = new Pix(FRAME_W, FRAME_H);
-    (id === 'poppy' ? drawPoppy : drawPuddlewick)(p, POSES[name]);
-    frames.set(name, p);
+    const rollPose = ROLL_POSES.find((prefix) => name.startsWith(prefix) && /^\d+$/.test(name.slice(prefix.length)));
+    if (rollPose) frames.set(name, rollArt(id, rollPose, Number(name.slice(rollPose.length))));
+    else if (name.startsWith('curl')) frames.set(name, curlTransition(id, Number(name.slice(4))));
+    else {
+      (id === 'poppy' ? drawPoppy : drawPuddlewick)(p, POSES[name]);
+      frames.set(name, p);
+    }
   }
   return { id, frames };
 }

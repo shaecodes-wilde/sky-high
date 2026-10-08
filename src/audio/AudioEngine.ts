@@ -14,6 +14,13 @@ export type Sfx =
   | 'land'
   | 'dash'
   | 'skim'
+  | 'curl'
+  | 'uncurl'
+  | 'pumpGood'
+  | 'pumpPerfect'
+  | 'rollLand'
+  | 'rollJump'
+  | 'rollBrake'
   | 'spring'
   | 'springBoost'
   | 'ring'
@@ -33,6 +40,13 @@ const RATE_LIMIT: Partial<Record<Sfx | 'squeak' | 'bells', number>> = {
   land: 0.08,
   jump: 0.05,
   skim: 0.16,
+  curl: 0.18,
+  uncurl: 0.18,
+  pumpGood: 0.12,
+  pumpPerfect: 0.12,
+  rollLand: 0.1,
+  rollJump: 0.05,
+  rollBrake: 0.22,
   ring: 0.1,
   wall: 0.25,
   seed: 0.03,
@@ -427,7 +441,7 @@ export class AudioEngine {
   // ── effects ────────────────────────────────────────────────────────────
   private allow(key: string): boolean {
     const ctx = this.ctx;
-    if (!ctx || this.status !== 'running') return false;
+    if (!ctx || this.status !== 'running' || this.paused || this.muted || this.sfxVolume <= 0) return false;
     const lim = RATE_LIMIT[key as Sfx] ?? 0.02;
     const now = ctx.currentTime;
     if (now - (this.last.get(key) ?? -1) < lim) return false;
@@ -455,6 +469,32 @@ export class AudioEngine {
     const ctx = this.ctx!;
     const t = ctx.currentTime;
     switch (name) {
+      case 'curl':
+        this.blip(380, 240, 0.055, 0.025, 'triangle');
+        break;
+      case 'uncurl':
+        this.blip(260, 420, 0.055, 0.02, 'triangle');
+        break;
+      case 'pumpGood':
+        this.blip(520, 740, 0.075, 0.035);
+        this.musicBoxSfx(this.chordTone(1, 1), 0.025, 0.015);
+        break;
+      case 'pumpPerfect':
+        this.blip(540, 920, 0.1, 0.04);
+        this.musicBoxSfx(this.chordTone(2, 2), 0.035, 0.025);
+        break;
+      case 'rollLand': {
+        const k = Math.min(1, (opt.impact ?? 150) / 340);
+        this.noiseHit(t, 0.035 + 0.035 * k, 'lowpass', 360, 0.065, this.sfxBus);
+        this.blip(180, 130, 0.055, 0.025, 'triangle');
+        break;
+      }
+      case 'rollJump':
+        this.blip(350, 640, 0.09, 0.06);
+        break;
+      case 'rollBrake':
+        this.noiseHit(t, 0.035, 'lowpass', 720, 0.08, this.sfxBus);
+        break;
       case 'jump':
         this.blip(420, 760, 0.12, 0.08);
         this.flavour('jump');

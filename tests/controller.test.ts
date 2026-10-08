@@ -57,6 +57,49 @@ describe('ground movement', () => {
     run(p, [floor()], 1, input({ move: 1 }));
     expect(Math.abs(p.vx)).toBeLessThanOrEqual(MOVEMENT.maxHorizontalSpeed);
   });
+
+  it('keeps earned speed while running forward, but stops quickly on release or reversal', () => {
+    const forward = makePlayer();
+    forward.vx = 225;
+    run(forward, [floor()], steps(1), input({ move: 1 }));
+    expect(forward.vx).toBeGreaterThan(160);
+    expect(forward.vx).toBeLessThan(170);
+
+    const released = makePlayer();
+    released.vx = 225;
+    run(released, [floor()], steps(0.32), input());
+    expect(released.vx).toBe(0);
+
+    const reversed = makePlayer();
+    reversed.vx = 225;
+    run(reversed, [floor()], steps(0.2), input({ move: -1 }));
+    expect(reversed.vx).toBeLessThan(-20);
+  });
+
+  it('does not reset overspeed when running off a platform', () => {
+    const p = makePlayer(0, 0);
+    p.vx = 225;
+    const solids = [floor(-100, 6)];
+    while (p.grounded) p.step(SIM_DT, input({ move: 1 }), solids, []);
+    const exit = p.vx;
+    p.step(SIM_DT, input({ move: 1 }), solids, []);
+    expect(exit).toBeGreaterThan(220);
+    expect(p.vx).toBeGreaterThan(exit - 1);
+  });
+
+  it('coasts with neutral air input while opposite input remains an effective air brake', () => {
+    const coast = makePlayer(0, 500);
+    coast.vx = R;
+    run(coast, [], steps(0.25), input());
+    expect(coast.vx).toBeGreaterThan(120);
+
+    const brake = makePlayer(0, 500);
+    brake.vx = 225;
+    run(brake, [], steps(0.1), input({ move: -1 }));
+    expect(brake.vx).toBeLessThan(150);
+    run(brake, [], steps(0.2), input({ move: -1 }));
+    expect(brake.vx).toBeLessThan(0);
+  });
 });
 
 describe('jumping', () => {
@@ -215,6 +258,255 @@ describe('air dash', () => {
     while (!p.grounded) p.step(SIM_DT, input({ move: 1 }), solids, []);
     expect(p.dashing).toBe(false);
     expect(p.vx).toBeGreaterThan(R * 1.5);
+  });
+
+  it('answers a buffered press at the refill boundary and retains its original direction', () => {
+    const p = airborne();
+    p.dashCharges = 0;
+    p.step(SIM_DT, input({ dash: -1, move: 1 }), [], []);
+    run(p, [], steps(0.08), input({ move: 1 }));
+    expect(p.dashing).toBe(false);
+    expect(p.refillDash()).toBe(true);
+    expect(p.resolveBufferedDash()).toBe(true);
+    expect(p.dashDir).toBe(-1);
+    expect(p.vx).toBeLessThan(-R * 1.5);
+    expect(p.dashCharges).toBe(0);
+    expect(p.resolveBufferedDash()).toBe(false);
+  });
+
+  it('retains earlier movement events when resolving a same-step refill', () => {
+    const p = airborne();
+    p.coyote = 0.05;
+    p.dashCharges = 0;
+    p.step(SIM_DT, input({ jumpPressed: true, jumpHeld: true, dash: 1 }), [], []);
+    expect(p.events.map((e) => e.type)).toEqual(['jump']);
+    p.refillDash();
+    expect(p.resolveBufferedDash()).toBe(true);
+    expect(p.events.map((e) => e.type)).toEqual(['jump', 'dash']);
+  });
+
+  it('does not answer an expired press after an unrelated later refill', () => {
+    const p = airborne();
+    p.dashCharges = 0;
+    p.step(SIM_DT, input({ dash: 1 }), [], []);
+    run(p, [], steps(0.14), input());
+    p.refillDash();
+    expect(p.resolveBufferedDash()).toBe(false);
+    expect(p.dashCharges).toBe(1);
+    expect(p.dashing).toBe(false);
+  });
+
+  it('consumes a timely request exactly once on active-dash expiry after a refill', () => {
+    const p = airborne();
+    p.step(SIM_DT, input({ dash: 1 }), [], []);
+    p.refillDash();
+    run(p, [], 4, input());
+    p.step(SIM_DT, input({ dash: -1 }), [], []);
+    let started = 0;
+    for (let i = 0; i < 8; i++) {
+      p.step(SIM_DT, input(), [], []);
+      if (p.events.some((e) => e.type === 'dash')) {
+        started++;
+        expect(p.events.map((e) => e.type)).toEqual(['dashEnd', 'dash']);
+        expect(p.dashDir).toBe(-1);
+      }
+    }
+    expect(started).toBe(1);
+    expect(p.dashCharges).toBe(0);
+    run(p, [], steps(0.3), input());
+    p.refillDash();
+    expect(p.resolveBufferedDash()).toBe(false);
+  });
+
+  it('clears airborne dash intent on landing even when a buffered jump rebounds immediately', () => {
+    const p = airborne(225, -120);
+    p.y = 1;
+    p.dashCharges = 0;
+    p.step(SIM_DT, input({ move: 1, dash: -1, jumpPressed: true, jumpHeld: true }), [floor()], []);
+    expect(p.events.map((e) => e.type)).toEqual(['land', 'jump']);
+    expect(p.grounded).toBe(false);
+    expect(p.vy).toBe(MOVEMENT.jumpSpeed);
+    expect(p.dashCharges).toBe(1);
+    expect(p.resolveBufferedDash()).toBe(false);
+    p.step(SIM_DT, input({ move: 1, jumpHeld: true }), [floor()], []);
+    expect(p.dashing).toBe(false);
+    expect(p.vx).toBeGreaterThan(220);
+  });
+
+  it('does not turn a stale grounded press into a dash on a later jump', () => {
+    const p = makePlayer();
+    p.step(SIM_DT, input({ dash: 1 }), [floor()], []);
+    run(p, [floor()], steps(0.14), input());
+    p.step(SIM_DT, input({ jumpPressed: true, jumpHeld: true }), [floor()], []);
+    expect(p.dashing).toBe(false);
+    expect(p.dashCharges).toBe(1);
+  });
+
+  it('a wall cancels queued dash intent as well as the active dash', () => {
+    const p = airborne();
+    p.x = 20;
+    const wall = box(30, 0, 20, 300);
+    p.step(SIM_DT, input({ dash: 1 }), [wall], []);
+    p.refillDash();
+    p.step(SIM_DT, input({ dash: -1 }), [wall], []);
+    expect(p.events.some((e) => e.type === 'dashEnd' && e.reason === 'wall')).toBe(true);
+    expect(p.vx).toBe(0);
+    expect(p.resolveBufferedDash()).toBe(false);
+  });
+});
+
+describe('spring contacts', () => {
+  const spring = () => ({ ...box(90, 8, 18, 4, 'spring', true), spring: 0 });
+
+  it('running into a spring rebounds normally, keeps speed and refills the dash', () => {
+    const p = makePlayer(83);
+    p.vx = 225;
+    p.dashCharges = 0;
+    p.step(SIM_DT, input({ move: 1 }), [floor(), spring()], []);
+    expect(p.events.some((e) => e.type === 'spring' && !e.boosted)).toBe(true);
+    expect(p.vy).toBe(MOVEMENT.springSpeed);
+    expect(p.vx).toBeGreaterThan(220);
+    expect(p.dashCharges).toBe(1);
+  });
+
+  it('a jump timed to imminent run-in contact boosts the spring instead of hopping over it', () => {
+    const p = makePlayer(83);
+    p.vx = R;
+    p.step(SIM_DT, input({ move: 1, jumpPressed: true, jumpHeld: true }), [floor(), spring()], []);
+    expect(p.events.some((e) => e.type === 'spring' && e.boosted)).toBe(true);
+    expect(p.events.some((e) => e.type === 'jump')).toBe(false);
+    expect(p.vy).toBe(MOVEMENT.springBoostSpeed);
+  });
+
+  it.each([R, 225])('a deliberate jump before a spring stays available at entry speed %s', (speed) => {
+    const p = makePlayer(70);
+    p.vx = speed;
+    p.step(SIM_DT, input({ move: 1, jumpPressed: true, jumpHeld: true }), [floor(), spring()], []);
+    expect(p.events.some((e) => e.type === 'jump')).toBe(true);
+    expect(p.events.some((e) => e.type === 'spring')).toBe(false);
+    let springEvents = 0;
+    for (let i = 0; i < 12; i++) {
+      p.step(SIM_DT, input({ move: 1, jumpHeld: true }), [floor(), spring()], []);
+      springEvents += p.events.filter((e) => e.type === 'spring').length;
+    }
+    expect(springEvents).toBe(0);
+    expect(p.y).toBeGreaterThan(40);
+  });
+
+  it('does not reserve a jump for a spring that braking prevents contacting this step', () => {
+    const p = makePlayer(82);
+    p.vx = R;
+    p.step(SIM_DT, input({ move: -1, jumpPressed: true, jumpHeld: true }), [floor(), spring()], []);
+    expect(p.events.some((e) => e.type === 'jump')).toBe(true);
+    expect(p.vy).toBeGreaterThan(280);
+  });
+
+  it('landing with a buffered jump boosts a spring and preserves horizontal momentum', () => {
+    const p = makePlayer(98, 13);
+    p.vx = 225;
+    p.vy = -200;
+    p.dashCharges = 0;
+    p.step(SIM_DT, input({ move: 1, jumpPressed: true, jumpHeld: true }), [floor(), spring()], []);
+    expect(p.events.some((e) => e.type === 'spring' && e.boosted)).toBe(true);
+    expect(p.vy).toBe(MOVEMENT.springBoostSpeed);
+    expect(p.vx).toBeGreaterThan(220);
+    expect(p.dashCharges).toBe(1);
+  });
+
+  it('a press just after contact upgrades the rebound without generating a second jump', () => {
+    const p = makePlayer(83);
+    p.vx = R;
+    const solids = [floor(), spring()];
+    p.step(SIM_DT, input({ move: 1 }), solids, []);
+    run(p, solids, 2, input({ move: 1 }));
+    const before = p.vy;
+    p.step(SIM_DT, input({ move: 1, jumpPressed: true, jumpHeld: true }), solids, []);
+    expect(p.events.map((e) => e.type)).toEqual(['springBoost']);
+    expect(p.vy).toBeGreaterThan(before + 80);
+    expect(p.jumpBuffer).toBe(0);
+  });
+});
+
+describe('cloud skimming', () => {
+  it('rebounds on the landing step with earned speed and one restored dash', () => {
+    const cloud = box(-20, -8, 200, 8, 'cloud', true);
+    const p = makePlayer(0, 2);
+    p.vx = R;
+    p.vy = -100;
+    p.step(SIM_DT, input({ dash: 1, move: 1, jumpPressed: true, jumpHeld: true }), [cloud], []);
+    let skim = false;
+    for (let i = 0; i < 10; i++) {
+      p.step(SIM_DT, input({ move: 1, jumpHeld: true }), [cloud], []);
+      if (p.events.some((e) => e.type === 'skim')) {
+        expect(p.events.map((e) => e.type)).toEqual(['dashEnd', 'land', 'jump', 'skim']);
+        expect(p.grounded).toBe(false);
+        expect(p.vy).toBe(MOVEMENT.jumpSpeed);
+        expect(p.vx).toBe(225);
+        expect(p.dashCharges).toBe(1);
+        expect(p.sinceSkim).toBe(0);
+        skim = true;
+        break;
+      }
+    }
+    expect(skim).toBe(true);
+  });
+
+  it('recognises a deliberate jump just after a dash landing without adding speed', () => {
+    const cloud = box(-20, -8, 200, 8, 'cloud', true);
+    const p = makePlayer(0, 2);
+    p.vx = R;
+    p.vy = -100;
+    p.step(SIM_DT, input({ dash: 1, move: 1 }), [cloud], []);
+    while (!p.grounded) p.step(SIM_DT, input({ move: 1 }), [cloud], []);
+    const speed = p.vx;
+    run(p, [cloud], 2, input({ move: 1 }));
+    p.step(SIM_DT, input({ move: 1, jumpPressed: true, jumpHeld: true }), [cloud], []);
+    expect(p.events.some((e) => e.type === 'skim')).toBe(true);
+    expect(p.vx).toBeLessThanOrEqual(speed);
+    expect(p.vy).toBeLessThanOrEqual(MOVEMENT.jumpSpeed);
+  });
+
+  it('chains distinct cloud landings without resets, free speed or extra dash charges', () => {
+    const solids = [
+      box(-20, -8, 130, 8, 'cloud', true),
+      box(120, -8, 130, 8, 'cloud', true),
+      box(260, -8, 130, 8, 'cloud', true),
+      box(400, -8, 130, 8, 'cloud', true),
+      box(540, -8, 130, 8, 'cloud', true),
+    ];
+    const p = makePlayer(20);
+    p.vx = R;
+    let flightSteps = 0;
+    let dashed = false;
+    let buffered = false;
+    const landings: number[] = [];
+    let dashCount = 0;
+    for (let i = 0; i < 240 && landings.length < 3; i++) {
+      const dash = !dashed && p.vy < 0 && p.y < 14;
+      const jump = i === 0 || (!buffered && p.vy < 0 && p.y < 3);
+      if (dash) dashed = true;
+      if (jump && i !== 0) buffered = true;
+      p.step(SIM_DT, input({ move: 1, jumpHeld: flightSteps < 10, jumpPressed: jump, dash: dash ? 1 : 0 }), solids, []);
+      flightSteps++;
+      dashCount += p.events.filter((e) => e.type === 'dash').length;
+      expect(p.dashCharges).toBeGreaterThanOrEqual(0);
+      expect(p.dashCharges).toBeLessThanOrEqual(1);
+      expect(p.vx).toBeLessThanOrEqual(MOVEMENT.dashSpeed);
+      if (p.events.some((e) => e.type === 'skim')) {
+        landings.push(p.x);
+        expect(p.dashCharges).toBe(1);
+        expect(p.vx).toBeGreaterThan(215);
+        flightSteps = 0;
+        dashed = false;
+        buffered = false;
+      }
+    }
+    expect(landings).toHaveLength(3);
+    expect(dashCount).toBe(3);
+    expect(landings[1]).toBeGreaterThan(120);
+    expect(landings[2]).toBeGreaterThan(260);
+    expect(p.y).toBe(0);
+    expect(p.vy).toBe(MOVEMENT.jumpSpeed);
   });
 });
 

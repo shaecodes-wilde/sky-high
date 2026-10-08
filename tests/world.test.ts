@@ -18,6 +18,7 @@ function tinyLevel(): LevelData {
     fragments: [],
     keepsakes: [],
     checkpoints: [{ x: 400, y: 0 }],
+    splitGates: undefined,
     signs: [],
     npcs: [],
     decor: [],
@@ -194,5 +195,189 @@ describe('time trial rules', () => {
     }
     expect(ttTalk).toBe(0);
     expect(advTalk).toBe(1);
+  });
+
+  it.each(['standard', 'express'] as const)('records all ordered gates on a continuous %s route', (route) => {
+    const level: LevelData = {
+      ...tinyLevel(),
+      rings: [],
+      checkpoints: [{ x: 200, y: 0 }, { x: 400, y: 0 }, { x: 700, y: 0 }],
+      goal: { x0: 900, x1: 950, top: 0 },
+    };
+    if (route === 'express') {
+      // Same start and finish: a spring launches onto a high lane that bypasses
+      // every low respawn marker, then the lane drops back to the shared goal.
+      level.springs = [{ x: 90, top: 0 }];
+      level.platforms.push({ id: 1, kind: 'cloud', x0: 130, x1: 780, top: 80, bottom: 72 });
+    }
+    const w = new World(level, MOVEMENT, 'timeTrial');
+    const crossings: number[] = [];
+    const heights: number[] = [];
+    for (let i = 0; i < steps(10) && !w.complete; i++) {
+      w.step(input({ move: 1 }));
+      for (const event of w.events) {
+        if (event.type !== 'split') continue;
+        crossings.push(event.index);
+        heights.push(event.y);
+      }
+    }
+    expect(w.complete).toBe(true);
+    expect(w.dead).toBe(false);
+    expect(crossings).toEqual([0, 1, 2]);
+    expect(w.splits.every((s) => s !== null)).toBe(true);
+    expect(w.progressionComplete).toBe(true);
+    expect(w.runInvalidReason).toBeNull();
+    if (route === 'express') {
+      expect(heights.every((y) => y >= 80)).toBe(true);
+      expect(w.checkpoint).toBe(-1);
+    } else {
+      expect(heights).toEqual([0, 0, 0]);
+      expect(w.checkpoint).toBe(2);
+    }
+  });
+
+  it('keeps physical respawn markers separate from authored progression gates', () => {
+    const level = { ...tinyLevel(), checkpoints: [{ x: 80, y: 0 }], splitGates: [{ x: 240 }] };
+    const w = new World(level, MOVEMENT, 'timeTrial');
+    let checkpointEvents = 0;
+    let splitEvents = 0;
+    for (let i = 0; i < steps(1.3); i++) {
+      w.step(input({ move: 1 }));
+      checkpointEvents += w.events.filter((e) => e.type === 'checkpoint').length;
+      splitEvents += w.events.filter((e) => e.type === 'split').length;
+    }
+    expect(checkpointEvents).toBe(1);
+    expect(w.checkpoint).toBe(0);
+    expect(splitEvents).toBe(0);
+    expect(w.splits).toEqual([null]);
+    for (let i = 0; i < steps(1); i++) {
+      w.step(input({ move: 1 }));
+      splitEvents += w.events.filter((e) => e.type === 'split').length;
+    }
+    expect(splitEvents).toBe(1);
+    expect(w.progressionComplete).toBe(true);
+    w.respawn();
+    expect(w.player.x).toBe(80);
+    expect(w.runInvalidReason).toBe('checkpoint retry');
+  });
+
+  it('never repeats a split while reversing and crossing a boundary again', () => {
+    const w = new World({ ...tinyLevel(), splitGates: [{ x: 100 }, { x: 800 }] }, MOVEMENT, 'timeTrial');
+    for (let i = 0; i < steps(1.4); i++) w.step(input({ move: 1 }));
+    const first = w.splits[0];
+    expect(first).not.toBeNull();
+    let repeated = 0;
+    for (let i = 0; i < steps(1.2); i++) {
+      w.step(input({ move: -1 }));
+      repeated += w.events.filter((e) => e.type === 'split').length;
+    }
+    expect(w.player.x).toBeLessThan(100);
+    for (let i = 0; i < steps(1.4); i++) {
+      w.step(input({ move: 1 }));
+      repeated += w.events.filter((e) => e.type === 'split').length;
+    }
+    expect(w.player.x).toBeGreaterThan(100);
+    expect(repeated).toBe(0);
+    expect(w.splits[0]).toBe(first);
+    expect(w.progressionValid).toBe(true);
+  });
+
+  it('invalidates a missed gate and never records a later gate out of order', () => {
+    const w = new World({ ...tinyLevel(), splitGates: [{ x: 100, minY: 100, maxY: 200 }, { x: 200 }] }, MOVEMENT, 'timeTrial');
+    let failures = 0;
+    for (let i = 0; i < steps(3); i++) {
+      w.step(input({ move: 1 }));
+      failures += w.events.filter((e) => e.type === 'progressionInvalid').length;
+    }
+    expect(w.player.x).toBeGreaterThan(200);
+    expect(w.splits).toEqual([null, null]);
+    expect(w.progressionValid).toBe(false);
+    expect(w.progressionComplete).toBe(false);
+    expect(w.runInvalidReason).toBe('skipped split gates');
+    expect(failures).toBe(1);
+  });
+
+  it('does not repair clean eligibility by backtracking after skipping a gate', () => {
+    const w = new World({ ...tinyLevel(), splitGates: [{ x: 100, minY: 35 }] }, MOVEMENT, 'timeTrial');
+    for (let i = 0; i < steps(1.2); i++) w.step(input({ move: 1 }));
+    expect(w.progressionValid).toBe(false);
+    for (let i = 0; i < steps(0.75); i++) w.step(input({ move: -1 }));
+    expect(w.player.x).toBeLessThan(100);
+    for (let i = 0; i < steps(0.7); i++) w.step(input({ move: 1, jumpPressed: i === 0, jumpHeld: true }));
+    expect(w.splits[0]).not.toBeNull(); // useful practice timing remains available
+    expect(w.progressionComplete).toBe(false);
+    expect(w.runInvalidReason).toBe('skipped split gates');
+  });
+
+  it('does not count a teleport beyond a boundary as a forward crossing', () => {
+    const w = new World({ ...tinyLevel(), splitGates: [{ x: 100 }, { x: 200 }] }, MOVEMENT, 'timeTrial');
+    w.player.reset(250, 0);
+    w.player.grounded = true;
+    w.step(input({ move: 1 }));
+    expect(w.splits).toEqual([null, null]);
+    expect(w.runInvalidReason).toBe('skipped split gates');
+  });
+
+  it('orders nearby boundaries even when maximum speed crosses both in one tick', () => {
+    const w = new World({ ...tinyLevel(), splitGates: [{ x: 2 }, { x: 4 }] }, MOVEMENT, 'timeTrial');
+    w.player.vx = MOVEMENT.maxHorizontalSpeed;
+    w.step(input({ move: 1 }));
+    expect(w.events.filter((e) => e.type === 'split').map((e) => e.index)).toEqual([0, 1]);
+    expect(w.splits[0]).toBeGreaterThan(0);
+    expect(w.splits[1]).toBeGreaterThan(w.splits[0]!);
+    expect(w.splits[1]).toBeLessThan(SIM_DT);
+    expect(w.progressionComplete).toBe(true);
+  });
+
+  it('uses the crossing height rather than the endpoint of a fast fall', () => {
+    const level = { ...tinyLevel(), splitGates: [{ x: 2, minY: 0, maxY: 99 }] };
+    const w = new World(level, MOVEMENT, 'timeTrial');
+    w.player.y = 101;
+    w.player.vx = MOVEMENT.maxHorizontalSpeed;
+    w.player.vy = -MOVEMENT.maxFall;
+    w.player.grounded = false;
+    w.step(input({ move: 1 }));
+    expect(w.progressionComplete).toBe(true);
+    const split = w.events.find((e) => e.type === 'split');
+    expect(split?.y).toBeLessThanOrEqual(99);
+    expect(split?.y).toBeGreaterThan(w.player.y);
+  });
+
+  it('keeps death ineligible after automatic respawn and retains first split times', () => {
+    const w = new World(tinyLevel(), MOVEMENT, 'timeTrial');
+    for (let i = 0; i < steps(4); i++) w.step(input({ move: 1 }));
+    const first = w.splits[0];
+    expect(w.checkpoint).toBe(0);
+    w.player.y = w.level.killY - 10;
+    w.player.grounded = false;
+    w.step(input());
+    expect(w.runInvalidReason).toBe('death');
+    for (let i = 0; i < steps(1); i++) w.step(input());
+    expect(w.dead).toBe(false);
+    expect(w.player.x).toBe(400);
+    expect(w.splits[0]).toBe(first);
+    expect(w.runInvalidReason).toBe('death');
+  });
+
+  it('clears all progression and eligibility state on a full restart', () => {
+    const w = new World(tinyLevel(), MOVEMENT, 'timeTrial');
+    for (let i = 0; i < steps(4); i++) w.step(input({ move: 1 }));
+    w.respawn();
+    expect(w.runInvalidReason).toBe('checkpoint retry');
+    w.resetAll();
+    expect(w.splits).toEqual([null]);
+    expect(w.checkpoint).toBe(-1);
+    expect(w.progressionComplete).toBe(false);
+    expect(w.progressionValid).toBe(true);
+    expect(w.runInvalidReason).toBeNull();
+    expect(w.time).toBe(0);
+    expect(w.events).toEqual([]);
+    for (let i = 0; i < steps(4); i++) w.step(input({ move: 1 }));
+    expect(w.progressionComplete).toBe(true);
+    expect(w.runInvalidReason).toBeNull();
+  });
+
+  it('rejects unordered split gates so authored indexes cannot silently change', () => {
+    expect(() => new World({ ...tinyLevel(), splitGates: [{ x: 200 }, { x: 100 }] }, MOVEMENT, 'timeTrial')).toThrow(/increasing/);
   });
 });

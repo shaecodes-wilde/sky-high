@@ -273,7 +273,7 @@ export class UI {
         `<kbd>A</kbd><kbd>D</kbd>/<kbd>←</kbd><kbd>→</kbd> move · <kbd>Space</kbd> jump · tap a direction twice in the air or <kbd>${esc(this.dashLabel)}</kbd> to dash<br><kbd>R</kbd> checkpoint retry · <kbd>Backspace</kbd> full restart · <kbd>M</kbd> mute · <kbd>Esc</kbd> pause`,
       ),
     );
-    if (mode === 'timeTrial') p.append(el('p', 'muted', 'In Time Trial, pausing, hiding the tab or retrying from a checkpoint moves the attempt to practice. Restart the full run for a clean, recordable attempt.'));
+    if (mode === 'timeTrial') p.append(el('p', 'muted', 'In Time Trial, death, pausing, losing focus, hiding the tab or retrying from a checkpoint moves the attempt to practice. Restart the full run for a clean, recordable attempt.'));
     this.open(p, h.resume);
   }
 
@@ -357,7 +357,7 @@ export class UI {
         const b = prevBest[i] ?? null;
         const d = s !== null && b !== null ? s - b : null;
         const tr = el('tr');
-        tr.innerHTML = `<td>Bloom ${i + 1}</td><td>${formatTime(s)}</td><td class="${d === null ? '' : d <= 0 ? 'ahead' : 'behind'}">${d === null ? '' : formatDelta(d)}</td>`;
+        tr.innerHTML = `<td>Split ${i + 1}</td><td>${formatTime(s)}</td><td class="${d === null ? '' : d <= 0 ? 'ahead' : 'behind'}">${d === null ? '' : formatDelta(d)}</td>`;
         table.append(tr);
       });
       p.append(table);

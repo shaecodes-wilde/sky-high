@@ -6,8 +6,8 @@ export const VIEW_W = 480;
 export const VIEW_H = 270;
 
 export const CAMERA_CONFIG = {
-  lookAheadPerSpeed: 0.42,
-  lookAheadMax: 110,
+  lookAheadPerSpeed: 0.48,
+  lookAheadMax: 120,
   lookAheadIdle: 28,
   lookAheadRate: 2.2,
   followRateX: 7,
@@ -16,6 +16,7 @@ export const CAMERA_CONFIG = {
   deadZoneUp: 64,
   deadZoneDown: 46,
   followRateY: 3.2,
+  springRateY: 6,
   fallRateY: 7,
 };
 
@@ -48,7 +49,7 @@ export class CameraRig {
     return Math.min(this.maxX - VIEW_W / 2, Math.max(this.minX + VIEW_W / 2, x));
   }
 
-  step(dt: number, px: number, py: number, vx: number, facing: number, grounded: boolean): void {
+  step(dt: number, px: number, py: number, vx: number, facing: number, grounded: boolean, vy = 0): void {
     const c = CAMERA_CONFIG;
     this.prevX = this.x;
     this.prevY = this.y;
@@ -62,11 +63,13 @@ export class CameraRig {
     else if (rel > c.deadZoneUp - c.groundOffset) this.anchorY = py - (c.deadZoneUp - c.groundOffset);
     else if (rel < -c.deadZoneDown - c.groundOffset) this.anchorY = py + c.deadZoneDown + c.groundOffset;
     const ty = Math.max(this.minY, this.anchorY);
-    const rate = ty < this.y ? c.fallRateY : c.followRateY;
+    const rate = ty < this.y ? c.fallRateY : vy > 320 ? c.springRateY : c.followRateY;
     this.y += (ty - this.y) * (1 - Math.exp(-rate * dt));
     // Never let a fast fall leave the player off-screen.
     const margin = VIEW_H / 2 - 30;
     if (py < this.y - margin) this.y = Math.max(this.minY, py + margin);
+    // Keep the hat and the next landing region visible on a boosted spring.
+    if (py + 32 > this.y + margin) this.y = Math.max(this.minY, py + 32 - margin);
     this.shake = Math.max(0, this.shake - dt * 3);
   }
 }

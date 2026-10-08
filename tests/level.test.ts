@@ -8,8 +8,10 @@ describe('level 1 route reachability (measured with the real controller)', () =>
     const a = LEVEL1.platforms[link.from];
     const b = LEVEL1.platforms[link.to];
     it(`normal route: ${a.kind}#${a.id} → ${b.kind}#${b.id} via ${link.move}${link.note ? ` (${link.note})` : ''}`, () => {
-      const r = validateLink(LEVEL1, MOVEMENT, link, 2, a.id > LEVEL1.platforms.findIndex((p) => p.parade));
+      const r = validateLink(LEVEL1, MOVEMENT, link, 2, a.x0 > LEVEL1.parade.triggerX);
       expect(r.successes, `only ${r.successes} takeoff points succeeded (${r.tried} tried)`).toBeGreaterThanOrEqual(2);
+      expect(r.widestWindow, `takeoff windows: ${JSON.stringify(r.takeoffWindows)}`).toBeGreaterThanOrEqual(link.note?.startsWith('recovery') ? 12 : 18);
+      expect(r.outcomes.every(o => Number.isFinite(o.landVx) && o.landingRoom >= -MOVEMENT.width / 2)).toBe(true);
     });
   }
   for (const link of LEVEL1.express) {
@@ -18,6 +20,7 @@ describe('level 1 route reachability (measured with the real controller)', () =>
     it(`express: ${a.kind}#${a.id} → ${b.kind}#${b.id} via ${link.move}`, () => {
       const r = validateLink(LEVEL1, MOVEMENT, link, 1, true);
       expect(r.ok, `${r.tried} strategies tried`).toBe(true);
+      expect(r.widestWindow).toBeGreaterThanOrEqual(12);
     });
   }
 });

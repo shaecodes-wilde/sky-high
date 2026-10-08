@@ -135,6 +135,8 @@ export class GameRenderer {
   private afterimages: Afterimage[] = [];
   private afterTimer = 0;
   private afterColor = 0;
+  private wakeTimerStep = 0;
+  private cloudReactions: { mesh: THREE.Mesh; age: number }[] = [];
   private bubbles: Bubble[] = [];
   private anim: { name: AnimName; t: number } = { name: 'idle', t: 0 };
   private time = 0;
@@ -238,7 +240,8 @@ export class GameRenderer {
         this.place(this.sprite(t, 'bl', p.x0, p.bottom, ORDER.platform), p.x0, p.x1);
       } else if (p.kind === 'cloud') {
         const t = this.tex(`cloud${w}r${p.recovery ? 1 : 0}s${p.id}`, () => art.drawCloud(w, !!p.recovery, p.id));
-        this.place(this.sprite(t, 'bl', p.x0, p.top - 22, ORDER.platform), p.x0, p.x1);
+        const mesh = this.place(this.sprite(t, 'bl', p.x0, p.top - 22, ORDER.platform), p.x0, p.x1);
+        this.cloudReactions[p.id] = { mesh, age: 99 };
         if (p.id % 3 === 1 && w >= 90) {
           const fm = this.sprite(this.faceTexture(false), 'bc', p.x0 + w / 2, p.top - 15, ORDER.platform + 0.5);
           this.faceMeshes.push({ mesh: fm, x: p.x0 });
@@ -399,6 +402,7 @@ export class GameRenderer {
   // ── events → effects ────────────────────────────────────────────────
   onEvents(events: readonly WorldEvent[], pres: Presentation): void {
     const P = this.particles;
+    P.scale = pres.particles;
     const w = this.world;
     const poppy = this.character === 'poppy';
     for (const e of events) {
@@ -408,6 +412,13 @@ export class GameRenderer {
           P.emit(poppy ? 'spore' : 'droplet', e.x, e.y + 8, 3);
           break;
         case 'land':
+          for (const platform of w.level.platforms) {
+            if (platform.kind === 'cloud' && Math.abs(platform.top - e.y) < 0.5 && e.x >= platform.x0 - 5 && e.x <= platform.x1 + 5) {
+              this.cloudReactions[platform.id].age = 0;
+              P.emit('puff', e.x, e.y - 2, 3, 0, -1);
+              break;
+            }
+          }
           P.emit('dust', e.x, e.y + 1, e.impact > 250 ? 10 : 5, 0, 1);
           if (e.impact > 320) this.shake = Math.max(this.shake, 0.35 * pres.shake);
           if (!poppy && e.impact > 200) P.emit('droplet', e.x, e.y + 10, 4);
@@ -415,6 +426,10 @@ export class GameRenderer {
         case 'dash':
           P.emit('dust', e.x, e.y + 11, 8, -e.dir, 0);
           P.emit(poppy ? 'petal' : 'droplet', e.x, e.y + 12, 6, -e.dir, 0);
+          break;
+        case 'skim':
+          P.emit('wake', e.x, e.y + 2, 6, -w.player.facing, 0.25);
+          P.emit('dew', e.x, e.y + 3, 4, 0, 1);
           break;
         case 'spring':
           P.emit(poppy ? 'petal' : 'droplet', e.x, e.y, e.boosted ? 12 : 7, 0, 1);
@@ -471,6 +486,8 @@ export class GameRenderer {
 
   clearTransient(): void {
     this.particles.clear();
+    this.wakeTimerStep = 0;
+    for (const reaction of this.cloudReactions) if (reaction) { reaction.age = 99; reaction.mesh.scale.y = 1; }
     for (const b of this.bubbles) this.removeBubble(b);
     this.bubbles.length = 0;
     this.afterimages.forEach((a) => {
@@ -528,6 +545,12 @@ export class GameRenderer {
     const vx0 = cx - VIEW_W / 2 - 40;
     const vx1 = cx + VIEW_W / 2 + 40;
     for (const pl of this.placed) pl.mesh.visible = !pl.hidden && pl.x1 >= vx0 && pl.x0 <= vx1;
+    // At most two pixels of cloud compression; standable surfaces and physics stay fixed.
+    for (const reaction of this.cloudReactions) {
+      if (!reaction) continue;
+      reaction.age += dt;
+      reaction.mesh.scale.y = reaction.age < 0.16 ? 1 - Math.sin(reaction.age / 0.16 * Math.PI) * 0.055 : 1;
+    }
 
     // Collectibles.
     const seedFrame = Math.floor(this.time * 8) % 4;
@@ -658,7 +681,10 @@ export class GameRenderer {
     if (w.complete) return p.grounded ? 'cheer' : 'fall';
     if (p.dashing) return 'dash';
     if (!p.grounded) {
+      if (p.sinceLand < 0.025 && p.vy > 0) return 'land';
+      if (p.sinceSkim < 0.09 && p.vy > 0) return 'rebound';
       if (p.ascent === 'spring' && p.vy > 120) return 'rebound';
+      if (p.ascent === 'jump' && p.airTime < 0.035) return 'launch';
       if (p.vy > 70) return 'jump';
       if (p.vy > -70) return 'apex';
       return 'fall';
@@ -681,9 +707,11 @@ export class GameRenderer {
       const k = Math.abs(p.vx) / p.cfg.runSpeed;
       fps = Math.min(RUN_FPS_RANGE[1], Math.max(RUN_FPS_RANGE[0], ANIMS.run.fps * k));
     }
+    if (name === 'fall' && p.vy < -240) fps = 12;
+    const frameTime = this.anim.t;
     this.anim.t += dt * fps;
     const def = ANIMS[name];
-    const idx = def.loop ? Math.floor(this.anim.t) % def.frames.length : Math.min(def.frames.length - 1, Math.floor(this.anim.t));
+    const idx = def.loop ? Math.floor(frameTime) % def.frames.length : Math.min(def.frames.length - 1, Math.floor(frameTime));
     const frameName = def.frames[idx];
     const tex = this.playerFrames.get(frameName) ?? null;
     (m.material as THREE.MeshBasicMaterial).map = tex;
@@ -694,7 +722,7 @@ export class GameRenderer {
 
     // Afterimages trail behind the live sprite.
     const fast = Math.abs(p.vx) > p.cfg.runSpeed * 1.15;
-    const want = input.pres.afterimages && m.visible && (p.dashing || (fast && bloom > 0.55));
+    const want = input.pres.afterimages && m.visible && (p.dashing || fast);
     this.afterTimer -= dt;
     if (want && this.afterTimer <= 0) {
       this.afterTimer = p.dashing ? 0.03 : 0.07;
@@ -713,7 +741,9 @@ export class GameRenderer {
     }
 
     // Petal wake / spores at high Bloom while running.
-    if (m.visible && p.grounded && fast && bloom > 0.6 && Math.random() < 0.35 * input.pres.particles) {
+    this.wakeTimerStep -= dt;
+    if (m.visible && fast && this.wakeTimerStep <= 0) {
+      this.wakeTimerStep = 0.12 - Math.min(1, Math.abs(p.vx) / p.cfg.maxHorizontalSpeed) * 0.025 - bloom * 0.025;
       this.particles.emit(this.character === 'poppy' ? 'wake' : 'droplet', p.x - p.facing * 6, p.y + 3, 1, -p.facing, 0.3);
     }
   }

@@ -6,8 +6,33 @@ import { LEVEL1_EXPRESS_CUES as EXPRESS, LEVEL1_STANDARD_CUES as STANDARD, level
 import { movementCues, replayInputs, traversalState, traverse } from '../src/level/traversal';
 import type { LevelData } from '../src/level/types';
 import { World } from '../src/sim/World';
+import { Input } from '../src/input/Input';
 
 describe('continuous Level 1 routes with production World and fixed-step input', () => {
+  for (const vx of [0, 132, 225]) for (const offset of [-6, 0, 6]) for (const dashOffset of [-1, 0, 1]) {
+    it(`flow route: initial vx ${vx}, takeoff ${offset}px, dash ${dashOffset} tick includes real Level 1 skims`, () => {
+      const r = traverse(LEVEL1, MOVEMENT, level1Inputs('flow', offset, dashOffset), {
+        start: { ...LEVEL1.start, vx }, maxSteps: 60 * 90, trailEvery: 0,
+      });
+      expect(r.reason).toBe('goal');
+      expect(r.wallHits).toBe(0);
+      expect(r.progressionComplete).toBe(true);
+      expect(r.runInvalidReason).toBeNull();
+      expect(r.events.filter(e => e.event.type === 'split').map(e => e.event.type === 'split' && e.event.index)).toEqual([0, 1, 2, 3, 4, 5]);
+      expect(r.peakSpeed).toBeLessThanOrEqual(MOVEMENT.maxHorizontalSpeed);
+      expect(r.events.filter(e => e.event.type === 'fragment')).toHaveLength(3);
+      expect(r.events.filter(e => e.event.type === 'skim').length).toBeGreaterThanOrEqual(2);
+      for (const [x0, x1] of [[1200, 1300], [1935, 2050]]) {
+        const landing = r.landings.find(l => l.x > x0 && l.x < x1);
+        expect(landing).toBeDefined();
+        expect(landing?.exit?.step).toBe(landing?.step);
+        expect(landing?.exit?.vx).toBe(landing?.vx);
+        expect(landing?.exit?.dashCharges).toBe(1);
+      }
+      const firstSpring = r.events.find(e => e.event.type === 'spring' && e.event.spring === 0);
+      expect(firstSpring && firstSpring.event.type === 'spring' && firstSpring.event.boosted).toBe(false);
+    });
+  }
   for (const [name, cues] of [['standard', STANDARD], ['express', EXPRESS]] as const) {
     for (const vx of [0, 132, 225]) for (const offset of [-6, 0, 6]) for (const dashOffset of [-1, 0, 1]) {
       it(`${name}: initial vx ${vx}, takeoff ${offset}px, dash ${dashOffset} tick`, () => {
@@ -31,17 +56,50 @@ describe('continuous Level 1 routes with production World and fixed-step input',
 
   it('express is genuinely faster and uses both upper lanes with identical initial conditions', () => {
     const standard = traverse(LEVEL1, MOVEMENT, level1Inputs('standard'), { trailEvery: 0 });
+    const flow = traverse(LEVEL1, MOVEMENT, level1Inputs('flow'), { trailEvery: 0 });
     const express = traverse(LEVEL1, MOVEMENT, level1Inputs('express'), { trailEvery: 0 });
     expect(standard.reason).toBe('goal');
     expect(express.reason).toBe('goal');
+    expect(flow.reason).toBe('goal');
     expect(express.final.time).toBeLessThan(standard.final.time - 2);
+    expect(flow.final.time).toBeLessThan(standard.final.time - 0.4);
+    expect(express.final.time).toBeLessThan(flow.final.time);
     const upperIds = LEVEL1.platforms.filter(p => p.parade || p.top >= 230).map(p => p.id);
     expect(express.landings.filter(l => upperIds.includes(l.surface!)).length).toBeGreaterThanOrEqual(8);
     expect(express.landings.some(l => l.x > 3300 && l.x < 3450 && l.vx > 220)).toBe(true);
     expect(express.landings.some(l => l.x > 6760 && l.x < 6900 && l.vx > 200)).toBe(true);
     expect(standard.events.filter(e => e.event.type === 'fragment')).toHaveLength(3);
     expect(express.events.filter(e => e.event.type === 'fragment')).toHaveLength(3);
-    console.log(`Continuous production routes: standard ${standard.final.time.toFixed(3)}s; express ${express.final.time.toFixed(3)}s; delta ${(standard.final.time - express.final.time).toFixed(3)}s. No deaths or wall impacts.`);
+    console.log(`Continuous production routes: comfort ${standard.final.time.toFixed(3)}s; flow ${flow.final.time.toFixed(3)}s; express ${express.final.time.toFixed(3)}s. No deaths or wall impacts.`);
+  });
+
+  it('flow skims survive real keyboard release/press edges and replay without state injection', () => {
+    const expected = traverse(LEVEL1, MOVEMENT, level1Inputs('flow'), { trailEvery: 0 });
+    const keys = new Input();
+    const policy = level1Inputs('flow');
+    const world = new World(LEVEL1, MOVEMENT, 'timeTrial');
+    keys.press('KeyD', 'right', 0);
+    let skims = 0;
+    let step = 0;
+    for (; step < 60 * 90 && !world.complete && !world.dead; step++) {
+      const ms = step * SIM_DT * 1000;
+      const frame = policy(world, step);
+      if (frame.jumpPressed) {
+        keys.release('Space', 'jump', ms);
+        keys.press('Space', 'jump', ms);
+      } else if (!frame.jumpHeld) keys.release('Space', 'jump', ms);
+      if (frame.dash) keys.press('ShiftLeft', 'dash', ms);
+      else keys.release('ShiftLeft', 'dash', ms);
+      world.step(keys.sample(!world.player.grounded, world.player.facing, ms));
+      skims += world.events.filter(e => e.type === 'skim').length;
+    }
+    expect(world.complete).toBe(true);
+    expect(skims).toBeGreaterThanOrEqual(2);
+    expect(traversalState(world, step)).toEqual(expected.final);
+    expect(world.splits).toEqual(expected.splits);
+    expect(world.fragmentsTaken.filter(Boolean)).toHaveLength(3);
+    expect(world.runInvalidReason).toBeNull();
+    expect(traverse(LEVEL1, MOVEMENT, expected.recording, { trailEvery: 0 })).toEqual(expected);
   });
 
   it('replays the entire exact input recording with the same landings, speeds, charges and events', () => {

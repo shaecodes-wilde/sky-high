@@ -23,7 +23,46 @@ export const LEVEL1_EXPRESS_CUES: readonly MovementCue[] = [
   full(6248, [32]), ...LEVEL1_STANDARD_CUES.filter(c => c.x >= 6990),
 ];
 
-export function level1Inputs(route: 'standard' | 'express', takeoffOffset = 0, dashOffset = 0): TraversalInput {
+export function level1Inputs(route: 'standard' | 'flow' | 'express', takeoffOffset = 0, dashOffset = 0): TraversalInput {
   const cues = route === 'express' ? LEVEL1_EXPRESS_CUES : LEVEL1_STANDARD_CUES;
-  return movementCues(cues.map(c => ({ ...c, dashSteps: c.dashSteps?.map(step => step + dashOffset) })), takeoffOffset);
+  const base = movementCues(cues.map(c => ({ ...c,
+    // Carrying the ring skim into this lower island calls for a short hop:
+    // a full jump would land too close to its thistles at the higher speed.
+    jumpHoldSteps: route === 'flow' && c.x === 2108 ? 8 : c.jumpHoldSteps,
+    dashSteps: c.dashSteps?.map(step => step + dashOffset),
+  })), takeoffOffset);
+  if (route !== 'flow') return base;
+
+  // The flow line shares the lower route but rebounds from its first two dash
+  // landings. Release then press again: this is a real keyboard edge, not a
+  // held-button re-jump. Only controls are changed; World owns the contact.
+  let releasedAt = -1;
+  let skimmed = false;
+  let targetIndex = 0;
+  const targets = [
+    { x0: 1180, x1: 1300, top: 80, stopX: 1460 },
+    { x0: 1900, x1: 2050, top: 168, stopX: 2250 },
+  ];
+  return (world, step) => {
+    const frame = base(world, step);
+    const p = world.player;
+    const target = targets[targetIndex];
+    if (!target) return frame;
+    if (releasedAt < 0) {
+      if (p.x > target.x0 && p.x < target.x1 && p.vy < 0 && p.y > target.top && p.y < target.top + 12 && p.dashCharges === 0) {
+        releasedAt = step;
+        frame.jumpHeld = false;
+        frame.jumpPressed = false;
+      }
+    } else {
+      if (step === releasedAt + 1) frame.jumpPressed = true;
+      skimmed ||= world.events.some(event => event.type === 'skim');
+      if ((skimmed && p.grounded) || p.x > target.stopX) {
+        targetIndex++;
+        releasedAt = -1;
+        skimmed = false;
+      } else frame.jumpHeld = true;
+    }
+    return frame;
+  };
 }

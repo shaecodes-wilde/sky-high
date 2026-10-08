@@ -3,8 +3,37 @@
 > **Branch:** art/cloudbloom-art-design  
 > **Base / future PR target:** master  
 > **Parallel workstream:** independent movement-mechanics branch (exact branch name may change)  
-> **Status:** Art-design production brief v0.1 — implementation not started by this documentation commit  
+> **Status:** Production brief v0.2 — vertical-slice art pass implemented on this branch (see *Implementation status* below and [ART_BIBLE.md](ART_BIBLE.md))  
 > **Creative source of truth:** [GAME_IDENTITY.md](GAME_IDENTITY.md)
+
+## Implementation status (2026-10-08)
+
+The chosen direction is **Skyprint Folklore**, the relief-print hymnal recorded in [ART_BIBLE.md](ART_BIBLE.md). It is now implemented across the whole first level, not just a sample section:
+
+| Area | State | Where |
+| --- | --- | --- |
+| Palette tokens and art bible | Done | `src/render/palette.ts`, `docs/ART_BIBLE.md` |
+| Presentation-signal adapter (movement → art contract) | Done, tested | `src/render/signals.ts`, `tests/signals.test.ts` |
+| Characters (21 frames each, same 24×32 contract) | Done; Sir Puddlewick redone structurally | `src/render/characters.ts`, `?sheet` |
+| Cloud Curl roll/curl frames (forward-compatible with movement PR #4) | Done, preview at `?sheet&curl` | `src/render/characters.ts` |
+| Sky, song staff, sun rings, parade edition, ending dawn | Done | `src/render/background.ts` |
+| Parallax (wind organs, cloud cliffs, carved banks, cloud sea) | Done | `src/render/background.ts` |
+| Play-plane art (moored earth, carved clouds, interactables, set pieces) | Done | `src/render/props.ts` |
+| Curved-terrain material seam | Done (`terrainMaterial`) | `src/render/props.ts` |
+| FX: bursts, print stamps, registration ghost, landing shadow | Done | `src/render/Bursts.ts`, `src/render/GameRenderer.ts` |
+| Petal Parade choreography | Done | `src/render/GameRenderer.ts` |
+| Game-native UI and HUD | Done | `src/ui/styles.css`, `src/ui/ornaments.ts`, `src/ui/UI.ts` |
+| Before/after captures | Done | `docs/art/before/`, `docs/art/after/`, `docs/art/characters.png` |
+| Real-GPU performance measurement | **Not done**: the preview browser renders with SwiftShader (software GL), so frame timings there are not meaningful | — |
+| Human playtest of readability at speed | **Not done** | — |
+
+### Integration notes for the movement stream
+- `src/render/signals.ts` is the **only** renderer code that reads controller internals. If controller fields are renamed, update `PresentationSignals.update()` and `chooseAnim()`; nothing else in the art layer depends on them.
+- Movement PR #3 (merged to master) was merged into this branch. Its feedback poses (launch, skim rebound, land-into-jump, steep-fall cadence), cloud compression and skim particles are kept, and the poses are ported to the adapter.
+- For movement PR #4 (Cloud Curl):
+  - Keep this branch's `characters.ts`. It already draws every `roll*`/`curl*` frame name that PR #4's `animation.ts` asks for.
+  - Its curved-terrain rasteriser can call `props.terrainMaterial()` per pixel instead of the legacy `PAL` ramp.
+  - `PAL` keeps its old keys, now mapped to the new palette, so legacy code stays on-palette.
 
 ## Mission
 

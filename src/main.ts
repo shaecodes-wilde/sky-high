@@ -32,7 +32,10 @@ async function boot(): Promise<void> {
     ui.showFallback('WebGL failed to start (the graphics driver may have refused it). Enabling hardware acceleration or updating the browser usually helps.');
     return;
   }
-  const game = new Game(renderer, ui);
+  // Developer tools are excluded from production builds and cannot submit records.
+  const dev = import.meta.env.DEV && new URLSearchParams(location.search).has('playground')
+    ? await import('./dev/playground') : null;
+  const game = new Game(renderer, ui, dev ? { level: dev.PLAYGROUND_LEVEL, playground: new dev.PlaygroundSession() } : {});
   // Exposed for debugging and automated smoke checks.
   (window as unknown as { cloudbloom: Game }).cloudbloom = game;
 }

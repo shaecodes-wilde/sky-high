@@ -29,6 +29,19 @@
   --sans: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
 }
 
+.movement-dev {
+  position: fixed; left: 8px; bottom: 8px; z-index: 100;
+  width: min(380px, calc(100vw - 16px)); padding: 10px; box-sizing: border-box;
+  background: #241b36ed; color: #fff8f0; border: 1px solid #b9a7e6;
+  font: 12px/1.4 'Segoe UI', sans-serif; border-radius: 8px;
+}
+.movement-dev strong { display: block; margin-bottom: 6px; }
+.movement-dev p { margin: 5px 0; }
+.movement-dev select { width: 100%; }
+.movement-dev button, .movement-dev select { font: inherit; margin: 2px; }
+.movement-dev pre { font: 11px/1.4 Consolas, monospace; margin: 6px 0; }
+.movement-dev canvas { width: 100%; height: 95px; background: #191024; }
+
 * {
   box-sizing: border-box;
 }

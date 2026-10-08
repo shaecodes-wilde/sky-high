@@ -1,0 +1,105 @@
+{
+  "method": "Automated Chromium Game.step replay through the real completion UI; not human playtesting",
+  "codeCommit": "124d466",
+  "inputs": "level1Inputs('standard'|'express'), uninterrupted whole-level traversals from rest; no mid-run player/world overrides",
+  "storage": "In-memory record storage fixture; existing browser records were preserved",
+  "evidence": {
+    "audio": "running",
+    "cleanRestart": true,
+    "deathPractice": "death",
+    "recordsInMemory": true,
+    "results": [
+      {
+        "character": "poppy",
+        "completionText": "♪ Melody fragment 3/3 — the sky hums along\nGood morning, sun.\nThe morning remembers its song\n\nPoppy reached the sleeping sun with 3/3 melody fragments.\n\n0:56.22\n\nFirst clean run recorded!\n\nSplit 1\t0:07.75\t\nSplit 2\t0:13.98\t\nSplit 3\t0:18.44\t\nSplit 4\t0:27.99\t\nSplit 5\t0:38.30\t\nSplit 6\t0:44.82\t\n\nSun-seeds 61/114 · Keepsakes 0/3\n\nPlay again\nTitle",
+        "deaths": 0,
+        "fragments": 3,
+        "goal": true,
+        "record": {
+          "bestSegments": [
+            7.746464646464577,
+            6.23568447634235,
+            4.457745296499272,
+            9.550446489785362,
+            10.313667529727741,
+            6.514149997395933,
+            11.398508230451434
+          ],
+          "bestSplits": [
+            7.746464646464577,
+            13.982149122806927,
+            18.4398944193062,
+            27.99034090909156,
+            38.3040084388193,
+            44.818158436215235
+          ],
+          "bestTime": 56.21666666666667,
+          "cleanRuns": 1
+        },
+        "respawnCheckpoint": 5,
+        "route": "standard",
+        "skims": 0,
+        "splits": [
+          7.746464646464577,
+          13.982149122806927,
+          18.4398944193062,
+          27.99034090909156,
+          38.3040084388193,
+          44.818158436215235
+        ],
+        "steps": 3373,
+        "time": 56.21666666666667,
+        "valid": true,
+        "walls": 0
+      },
+      {
+        "character": "puddlewick",
+        "completionText": "♪ Melody fragment 3/3 — the sky hums along\nGood morning, sun.\nThe morning remembers its song\n\nSir Puddlewick reached the sleeping sun with 3/3 melody fragments.\n\n0:53.80\n\nNew best! (−2.42)\n\nSplit 1\t0:07.75\t\nSplit 2\t0:13.98\t\nSplit 3\t0:19.05\t\nSplit 4\t0:26.09\t\nSplit 5\t0:37.38\t\nSplit 6\t0:43.07\t\n\nSun-seeds 65/114 · Keepsakes 0/3\n\nPlay again\nTitle",
+        "deaths": 0,
+        "fragments": 3,
+        "goal": true,
+        "record": {
+          "bestSegments": [
+            7.746464646464577,
+            6.23568447634235,
+            4.457745296499272,
+            7.038026094276145,
+            10.313667529727741,
+            5.690574605705969,
+            10.732005360622964
+          ],
+          "bestSplits": [
+            7.746464646464577,
+            13.982149122806927,
+            19.051515151515197,
+            26.08954124579134,
+            37.377420033671065,
+            43.067994639377034
+          ],
+          "bestTime": 53.8,
+          "cleanRuns": 2
+        },
+        "respawnCheckpoint": 5,
+        "route": "express",
+        "skims": 0,
+        "splits": [
+          7.746464646464577,
+          13.982149122806927,
+          19.051515151515197,
+          26.08954124579134,
+          37.377420033671065,
+          43.067994639377034
+        ],
+        "steps": 3228,
+        "time": 53.8,
+        "valid": true,
+        "walls": 0
+      }
+    ],
+    "retryPractice": "checkpoint retry"
+  },
+  "limitations": [
+    "The later Flow policy was verified in production World and real Input tests, but was added after the collaborative browser host disconnected.",
+    "These scripted traversals do not measure human timing, readability or difficulty."
+  ]
+}

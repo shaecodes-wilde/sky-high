@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+body{margin:0;color:var(--foreground,#e8edf5);font:14px/1.5 var(--font-sans,system-ui)}
+p{margin:0 0 16px}.label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-foreground,#aab2c4)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:22px}th,td{padding:9px 7px;text-align:left;border-bottom:1px solid var(--border,#394052);vertical-align:top}th{color:var(--muted-foreground,#aab2c4);font-weight:500}th:first-child,td:first-child{padding-left:0}td:nth-child(3){color:var(--success,#69d4af);font-weight:650}small{color:var(--muted-foreground,#aab2c4);font-size:12px}
+.route{display:grid;grid-template-columns:80px 1fr 64px;gap:10px;align-items:center;margin:9px 0}.track{height:18px;background:var(--muted,#252b39);border-radius:3px;overflow:hidden}.bar{height:100%;background:var(--chart-1,#7fa8fa)}.flow .bar{background:var(--chart-2,#67cfb2)}.express .bar{background:var(--chart-3,#cc98ed)}
+@media(max-width:480px){body{font-size:13px}table{font-size:12px}th,td{padding:7px 4px}.why{display:none}.route{grid-template-columns:64px 1fr 58px}}
+</style><body>
+<p class="label">Measured movement changes</p>
+<table aria-label="Movement tuning before and after"><thead><tr><th>Parameter</th><th>Before</th><th>Implemented</th><th class="why">Player benefit</th></tr></thead><tbody>
+<tr><td>Forward ground overspeed decay</td><td>150 px/s²</td><td>60 px/s²</td><td class="why">Keep dash speed across the next approach</td></tr>
+<tr><td>Air overspeed decay</td><td>45 px/s²</td><td>30 px/s²</td><td class="why">Carry earned speed farther</td></tr>
+<tr><td>Neutral air friction</td><td>140 px/s²</td><td>25 px/s²</td><td class="why">Release input without losing most of a jump's speed</td></tr>
+<tr><td>Airborne dash buffer</td><td>~8.3 ms</td><td>100 ms</td><td class="why">Reliable ring-refill and dash-expiry timing</td></tr>
+<tr><td>Camera look-ahead</td><td>0.42 s / 110 px</td><td>0.48 s / 120 px</td><td class="why">See the next landing at speed</td></tr>
+<tr><td>Spring jump assistance</td><td>~120 ms ahead</td><td>Imminent contact</td><td class="why">Earlier deliberate jumps remain available</td></tr>
+</tbody></table>
+<p><small>Unchanged: run 132 px/s · acceleration 640 px/s² · reverse braking 1500 px/s² · dash 225 px/s for 140 ms · cap 300 px/s · coyote/jump buffer 100/120 ms.</small></p>
+<p class="label">Whole-level traversals from rest · lower time is faster</p>
+<div class="route"><span>Comfort</span><div class="track"><div class="bar" style="width:93.69%"></div></div><strong>56.217s</strong></div>
+<div class="route flow"><span>Flow</span><div class="track"><div class="bar" style="width:92.86%"></div></div><strong>55.717s</strong></div>
+<div class="route express"><span>Express</span><div class="track"><div class="bar" style="width:89.67%"></div></div><strong>53.800s</strong></div>
+<p style="margin-top:14px"><small>Fixed 60 Hz production simulation. All 81 tested speed/timing variants finish with six ordered splits, three fragments, zero deaths and zero wall impacts. Flow includes two real cloud skims at 214/218 px/s, with exact landing velocity preserved. Scripted results establish feasibility, not optimal times or human difficulty.</small></p>
+</body></html>

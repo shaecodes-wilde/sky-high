@@ -61,6 +61,17 @@ describe('presentation signals', () => {
     expect(pose()).toBe('apex');
     p.vy = -200;
     expect(pose()).toBe('fall');
+    // Movement-branch feedback poses: launch anticipation, skim rebound, land-into-jump.
+    p.vy = 200;
+    p.ascent = 'jump';
+    p.airTime = 0.01;
+    expect(pose()).toBe('launch');
+    p.airTime = 0.2;
+    p.sinceSkim = 0.02;
+    expect(pose()).toBe('rebound');
+    p.sinceSkim = 99;
+    p.sinceLand = 0.01;
+    expect(pose()).toBe('land');
   });
 
   it('never changes the simulation', () => {

@@ -36,6 +36,12 @@ export interface MotionSignals {
   sinceLand: number;
   /** Seconds the player has been grounded continuously. */
   groundTime: number;
+  /** Seconds airborne in the current flight (0 while grounded). */
+  airTime: number;
+  /** Rising from an ordinary jump (as opposed to a spring). */
+  jumpAscent: boolean;
+  /** Seconds since the last cloud-skim rebound. */
+  sinceSkim: number;
   dead: boolean;
   complete: boolean;
 
@@ -45,6 +51,8 @@ export interface MotionSignals {
   /** 0 = no landing this frame, otherwise landing intensity 0..1 (impact / maxFall). */
   landed: number;
   jumped: boolean;
+  /** A momentum-preserving cloud skim happened this frame. */
+  skimmed: boolean;
   sprung: boolean;
   ringRefill: boolean;
 
@@ -71,12 +79,16 @@ export class PresentationSignals {
     rebounding: false,
     sinceLand: 99,
     groundTime: 0,
+    airTime: 0,
+    jumpAscent: false,
+    sinceSkim: 99,
     dead: false,
     complete: false,
     dashStarted: false,
     dashEnded: false,
     landed: 0,
     jumped: false,
+    skimmed: false,
     sprung: false,
     ringRefill: false,
     bloom: 0,
@@ -85,7 +97,7 @@ export class PresentationSignals {
     moodName: 'quiet',
     parade: { anticipation: 0, reveal: 0, intensity: 0, bridgeAlpha: 0, active: false },
   };
-  private pending = { dashStarted: false, dashEnded: false, landed: 0, jumped: false, sprung: false, ring: false };
+  private pending = { dashStarted: false, dashEnded: false, landed: 0, jumped: false, skimmed: false, sprung: false, ring: false };
 
   /** Feed every simulation step's events (called from GameRenderer.onEvents). */
   ingest(events: readonly WorldEvent[], world: World): void {
@@ -96,6 +108,7 @@ export class PresentationSignals {
       else if (e.type === 'dashEnd') q.dashEnded = true;
       else if (e.type === 'land') q.landed = Math.max(q.landed, Math.min(1, Math.max(0.05, e.impact / maxFall)));
       else if (e.type === 'jump') q.jumped = true;
+      else if (e.type === 'skim') q.skimmed = true;
       else if (e.type === 'spring' || e.type === 'springBoost') q.sprung = true;
       else if (e.type === 'ring') q.ring = true;
     }
@@ -118,6 +131,9 @@ export class PresentationSignals {
     s.rebounding = !p.grounded && p.ascent === 'spring' && p.vy > 0;
     s.sinceLand = p.sinceLand;
     s.groundTime = p.groundTime;
+    s.airTime = p.airTime;
+    s.jumpAscent = !p.grounded && p.ascent === 'jump';
+    s.sinceSkim = p.sinceSkim;
     s.dead = world.dead;
     s.complete = world.complete;
     // Apex band scales with jump strength, so a retuned jump keeps a readable hang pose.
@@ -129,13 +145,14 @@ export class PresentationSignals {
     s.dashEnded = q.dashEnded;
     s.landed = q.landed;
     s.jumped = q.jumped;
+    s.skimmed = q.skimmed;
     s.sprung = q.sprung;
     s.ringRefill = q.ring;
-    q.dashStarted = q.dashEnded = q.jumped = q.sprung = q.ring = false;
+    q.dashStarted = q.dashEnded = q.jumped = q.skimmed = q.sprung = q.ring = false;
     q.landed = 0;
 
     // Energy: eases toward a target built from speed, dashing and rebounds.
-    const target = clamp01(Math.max(0, s.speed - 0.35) * 0.75 + s.overdrive * 0.5 + (s.dashing ? 0.6 : 0) + (s.rebounding ? 0.3 : 0));
+    const target = clamp01(Math.max(0, s.speed - 0.35) * 0.75 + s.overdrive * 0.5 + (s.dashing ? 0.6 : 0) + (s.rebounding || s.sinceSkim < 0.3 ? 0.3 : 0));
     const rate = target > s.energy ? 6 : 1.6;
     s.energy += (target - s.energy) * (1 - Math.exp(-rate * dt));
     if (s.dead) s.energy = 0;
@@ -157,7 +174,7 @@ export class PresentationSignals {
   /** Clears pulses and energy (restart / respawn / title). */
   reset(): void {
     const q = this.pending;
-    q.dashStarted = q.dashEnded = q.jumped = q.sprung = q.ring = false;
+    q.dashStarted = q.dashEnded = q.jumped = q.skimmed = q.sprung = q.ring = false;
     q.landed = 0;
     this.s.energy = 0;
   }
@@ -169,7 +186,12 @@ export function chooseAnim(s: MotionSignals): AnimName {
   if (s.complete) return s.air === 'grounded' ? 'cheer' : 'fall';
   if (s.dashing) return 'dash';
   if (s.air !== 'grounded') {
+    // A buffered jump straight off a landing still shows a frame of contact.
+    if (s.sinceLand < 0.025 && s.rise > 0) return 'land';
+    if (s.sinceSkim < 0.09 && s.rise > 0) return 'rebound';
     if (s.rebounding && s.rise > 0.4) return 'rebound';
+    // Visual anticipation only: physics responds on the input step.
+    if (s.jumpAscent && s.airTime < 0.035) return 'launch';
     if (s.air === 'rising') return 'jump';
     if (s.air === 'apex') return 'apex';
     return 'fall';

@@ -4,9 +4,11 @@ import { movementFor, SIM_DT } from '../config/movement';
 import { FixedLoop } from '../core/FixedLoop';
 import { Input } from '../input/Input';
 import { LEVEL1 } from '../level/level1';
+import type { LevelData } from '../level/types';
+import type { PlaygroundSession } from '../dev/playground';
 import { formatDelta, formatTime, getRecord, recordKey, safeStorage, submitCleanRun, type KVStore } from '../persist/records';
 import { applyPreset, loadSettings, presentationOf, saveSettings, type Settings } from '../persist/settings';
-import { CameraRig } from '../render/CameraRig';
+import { CameraRig, VIEW_H } from '../render/CameraRig';
 import type { CharacterId } from '../render/characters';
 import { GameRenderer } from '../render/GameRenderer';
 import { World, type WorldEvent } from '../sim/World';
@@ -36,17 +38,23 @@ export class Game {
   private completeTimer = -1;
   private seedsTaken = 0;
   private settingsReturn: () => void = () => {};
+  private readonly level: LevelData;
+  private readonly playground?: PlaygroundSession;
+  private devPanel?: { update: () => void; dispose: () => void };
 
   constructor(
     private renderer: GameRenderer,
     private ui: UI,
+    options: { level?: LevelData; playground?: PlaygroundSession } = {},
   ) {
+    this.level = options.level ?? LEVEL1;
+    this.playground = options.playground;
     this.character = this.settings.character;
     this.world = this.makeWorld();
-    this.camera = new CameraRig(LEVEL1.minX, LEVEL1.maxX, 110);
+    this.camera = new CameraRig(this.level.minX, this.level.maxX, this.level.killY + VIEW_H / 2 - 30);
     this.renderer.buildLevel(this.world);
     this.renderer.setCharacter(this.character);
-    this.camera.snapTo(LEVEL1.start.x + 120, LEVEL1.start.y, 1);
+    this.camera.snapTo(this.level.start.x + 120, this.level.start.y, 1);
     this.applySettings();
     this.input.attach(window);
     this.ui.onPreset = (n) => applyPreset(this.settings, n);
@@ -56,11 +64,17 @@ export class Game {
     window.addEventListener('blur', () => this.onBlur());
     this.onResize();
     this.ui.showTitle(() => void this.startFromTitle());
+    if (this.playground) this.devPanel = this.playground.mount(() => this.world, () => {
+      this.input.reset();
+      this.loop.reset();
+      this.renderer.clearTransient();
+      this.camera.snapTo(this.world.player.x, this.world.player.y, 1);
+    });
     this.raf = requestAnimationFrame((t) => this.frame(t));
   }
 
   private makeWorld(): World {
-    return new World(LEVEL1, movementFor(this.settings.assist), this.settings.mode);
+    return new World(this.level, movementFor(this.settings.assist), this.playground ? 'adventure' : this.settings.mode);
   }
 
   private applySettings(): void {
@@ -171,17 +185,19 @@ export class Game {
     this.restartRun();
     this.ui.closeMenu();
     this.ui.setHudVisible(true);
-    if (this.settings.mode === 'adventure') this.ui.caption('The sky has forgotten its morning song…', 4);
+    if (this.playground) this.ui.toast('Developer playground · section resets and replays cannot set records', 3);
+    else if (this.settings.mode === 'adventure') this.ui.caption('The sky has forgotten its morning song…', 4);
     else this.ui.toast('Time Trial — clean run from the start', 2.5);
   }
 
   private restartRun(): void {
     this.world.resetAll();
+    this.playground?.reset(this.world);
     this.input.reset();
     this.loop.reset();
     this.camera.snapTo(this.world.player.x, this.world.player.y, 1);
     this.renderer.clearTransient();
-    this.practice = null;
+    this.practice = this.playground ? 'developer playground' : null;
     this.completeTimer = -1;
     this.seedsTaken = 0;
     this.audio.setFragments(0);
@@ -196,7 +212,8 @@ export class Game {
   private retryCheckpoint(): void {
     if (this.world.complete) return;
     if (this.settings.mode === 'timeTrial' && !this.practice) this.markPractice('checkpoint retry');
-    this.world.respawn();
+    if (this.playground) this.playground.reset(this.world);
+    else this.world.respawn();
     this.handleEvents(this.world.events);
     this.camera.snapTo(this.world.player.x, this.world.player.y, 1);
     this.input.reset();
@@ -255,18 +272,20 @@ export class Game {
     this.ui.setHudVisible(false);
     this.world.resetAll();
     this.renderer.clearTransient();
-    this.camera.snapTo(LEVEL1.start.x + 120, LEVEL1.start.y, 1);
+    this.camera.snapTo(this.level.start.x + 120, this.level.start.y, 1);
     this.ui.showTitle(() => void this.startFromTitle());
   }
 
   private finish(): void {
     const w = this.world;
     const mode = this.settings.mode;
-    const key = recordKey(LEVEL1.id, this.settings.assist);
+    const key = recordKey(this.level.id, this.settings.assist);
     let result = { best: getRecord(this.store, key).bestTime, previousBest: getRecord(this.store, key).bestTime, newBest: false, bestSplits: getRecord(this.store, key).bestSplits };
-    // A legitimate full run passes every checkpoint; anything else is practice.
-    if (mode === 'timeTrial' && this.practice === null && w.splits.some((s) => s === null)) this.practice = 'skipped checkpoints';
-    const clean = mode === 'timeTrial' && this.practice === null;
+    // All legitimate lanes cross progression gates; respawn flowers are optional.
+    if (mode === 'timeTrial' && this.practice === null) {
+      this.practice = w.runInvalidReason ?? (!w.progressionComplete ? 'skipped split gates' : null);
+    }
+    const clean = !this.playground && mode === 'timeTrial' && this.practice === null;
     if (clean) {
       const prevSplits = result.bestSplits;
       const r = submitCleanRun(this.store, key, w.completeTime, w.splits);
@@ -318,7 +337,7 @@ export class Game {
       this.titleTime += dt;
       this.camera.prevX = this.camera.x;
       this.camera.prevY = this.camera.y;
-      this.camera.x = LEVEL1.start.x + 200 + Math.sin(this.titleTime * 0.12) * 140;
+      this.camera.x = this.level.start.x + 200 + Math.sin(this.titleTime * 0.12) * 140;
       this.camera.y = 150;
     } else if (this.state === 'complete') {
       alpha = this.loop.advance(dt, () => this.step());
@@ -333,6 +352,7 @@ export class Game {
       frameDt: this.state === 'paused' ? 0 : dt,
     });
     this.ui.tick(dt);
+    this.devPanel?.update();
     if (this.state === 'playing' || this.state === 'paused') {
       this.ui.updateHud(this.settings.mode, this.world.fragmentsTaken.filter(Boolean).length, this.seedsTaken, this.world.complete ? this.world.completeTime : this.world.time, this.practice);
       this.ui.setBloom(this.world.bloom.tier); // presentation only
@@ -359,8 +379,10 @@ export class Game {
     const w = this.world;
     const p = w.player;
     const input = this.state === 'playing' ? this.input.sample(!p.grounded, p.facing, performance.now()) : { move: 0 as const, jumpHeld: false, jumpPressed: false, dash: 0 as const };
-    w.step(input);
-    this.camera.step(SIM_DT, p.x, p.y, p.vx, p.facing, p.grounded);
+    w.step(this.playground && this.state === 'playing' ? this.playground.input(input) : input);
+    if (this.playground && w.events.some((e) => e.type === 'respawn')) this.playground.restoreSectionSpawn(w);
+    if (this.state === 'playing') this.playground?.afterStep(w);
+    this.camera.step(SIM_DT, p.x, p.y, p.vx, p.facing, p.grounded, p.vy);
     this.handleEvents(w.events);
   }
 
@@ -382,6 +404,9 @@ export class Game {
           break;
         case 'dash':
           A.play('dash');
+          break;
+        case 'skim':
+          A.play('skim', { speed: e.speed });
           break;
         case 'spring':
           A.play(e.boosted ? 'springBoost' : 'spring');
@@ -408,25 +433,32 @@ export class Game {
         }
         case 'keepsake':
           A.play('keepsake');
-          this.ui.toast(`Keepsake found: ${LEVEL1.keepsakes[e.index].name}`);
+          this.ui.toast(`Keepsake found: ${this.level.keepsakes[e.index].name}`);
           break;
-        case 'checkpoint': {
-          A.play('checkpoint');
-          if (this.settings.mode === 'timeTrial') {
-            const rec = getRecord(this.store, recordKey(LEVEL1.id, this.settings.assist));
+        case 'checkpoint':
+          if (this.settings.mode === 'adventure') A.play('checkpoint');
+          break;
+        case 'split': {
+          if (!this.playground && this.settings.mode === 'timeTrial') {
+            A.play('checkpoint');
+            const rec = getRecord(this.store, recordKey(this.level.id, this.settings.assist));
             const best = rec.bestSplits[e.index] ?? null;
-            const now = this.world.splits[e.index] ?? this.world.time;
+            const now = e.time;
             const delta = best !== null ? ` <span class="${now - best <= 0 ? 'ahead' : 'behind'}">${formatDelta(now - best)}</span>` : '';
-            this.ui.toast(`Bloom ${e.index + 1} · ${formatTime(now)}${delta}`);
+            this.ui.toast(`Split ${e.index + 1} · ${formatTime(now)}${delta}`);
           }
           break;
         }
         case 'death':
           A.play('death');
+          this.markPractice('death');
+          break;
+        case 'progressionInvalid':
+          this.markPractice(e.reason);
           break;
         case 'respawn':
           A.play('respawn');
-          this.camera.snapTo(e.x, e.y, 1);
+          this.camera.snapTo(this.world.player.x, this.world.player.y, 1);
           break;
         case 'paradeStart':
           A.play('parade');
@@ -448,5 +480,6 @@ export class Game {
     cancelAnimationFrame(this.raf);
     this.input.dispose();
     this.audio.dispose();
+    this.devPanel?.dispose();
   }
 }

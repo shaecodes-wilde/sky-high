@@ -13,6 +13,7 @@ export type Sfx =
   | 'jump'
   | 'land'
   | 'dash'
+  | 'skim'
   | 'spring'
   | 'springBoost'
   | 'ring'
@@ -31,6 +32,8 @@ export type Sfx =
 const RATE_LIMIT: Partial<Record<Sfx | 'squeak' | 'bells', number>> = {
   land: 0.08,
   jump: 0.05,
+  skim: 0.16,
+  ring: 0.1,
   wall: 0.25,
   seed: 0.03,
   squeak: 0.9,
@@ -447,7 +450,7 @@ export class AudioEngine {
     return tones[i % tones.length] + 12 * (octave + Math.floor(i / tones.length));
   }
 
-  play(name: Sfx, opt: { chain?: number; index?: number; impact?: number } = {}): void {
+  play(name: Sfx, opt: { chain?: number; index?: number; impact?: number; speed?: number } = {}): void {
     if (!this.allow(name)) return;
     const ctx = this.ctx!;
     const t = ctx.currentTime;
@@ -465,6 +468,10 @@ export class AudioEngine {
       case 'dash':
         this.noiseHit(t, 0.12, 'bandpass', 1200, 0.18, this.sfxBus);
         this.blip(300, 900, 0.16, 0.05, 'triangle');
+        break;
+      case 'skim':
+        this.musicBoxSfx(this.chordTone(2, 2), 0.035, 0);
+        this.blip(650, 850 + Math.min(300, opt.speed ?? 225), 0.09, 0.025, 'sine');
         break;
       case 'spring':
       case 'springBoost': {

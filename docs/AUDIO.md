@@ -47,6 +47,12 @@ Stem levels change only at bar boundaries, with a short crossfade (`setTargetAtT
 - Pausing suspends the context.
 - Restarts never create a second scheduler or a second track: `playMusic` is idempotent.
 
+The momentum build adds a quiet, rate-limited cloud-skim musical accent with a
+small speed-dependent pitch rise. It plays on a timely dash-flight landing and
+rebound, rather than every movement step. Ring accents are also rate-limited.
+Normal/boosted spring sounds, character flavor, mute/volume controls and the
+four synchronized adaptive stems remain unchanged. Sound is presentation only.
+
 ## Replacing it with recorded stems
 
 1. Export four loop-aligned stems per section at 144 BPM (same length, same start). Any common format works, e.g. `assets/audio/A_stem0.ogg` … `A_stem3.ogg`, plus the same for `B`, `intro`, `parade` and `ending`.

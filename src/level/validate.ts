@@ -1,4 +1,5 @@
 import type { MovementConfig } from '../config/movement';
+import { SIM_DT } from '../config/movement';
 import { groundUnder } from '../sim/collision';
 import type { InputFrame } from '../sim/Player';
 import { World } from '../sim/World';
@@ -28,7 +29,7 @@ export function estimateRouteTime(level: LevelData, cfg: MovementConfig, links: 
 // takeoff points succeed — a crude but honest stand-in for "comfortably
 // reachable", rather than guessing gap distances by hand.
 
-interface Strategy {
+export interface Strategy {
   takeoffX: number;
   jump: boolean;
   boost: boolean;
@@ -61,6 +62,10 @@ export interface LinkResult {
   tried: number;
   /** The fastest successful outcome found (by air time). */
   best: StrategyOutcome | null;
+  /** Consecutive sampled successful takeoff positions, not a single lucky press. */
+  takeoffWindows: { minX: number; maxX: number; width: number; secondsAtRunSpeed: number }[];
+  widestWindow: number;
+  outcomes: StrategyOutcome[];
 }
 
 export interface StrategyOutcome {
@@ -68,6 +73,11 @@ export interface StrategyOutcome {
   airTime: number;
   takeoffX: number;
   landX: number;
+  landVx: number;
+  /** Forward landing room still available for preparing the next move. */
+  landingRoom: number;
+  dashes: number[];
+  steer: 0 | 1;
 }
 
 export function runStrategy(level: LevelData, cfg: MovementConfig, link: RouteLink, s: Strategy, paradeDone: boolean): StrategyOutcome | null {
@@ -85,6 +95,7 @@ export function runStrategy(level: LevelData, cfg: MovementConfig, link: RouteLi
   let tookOff = false;
   let airT = 0;
   let dashIdx = 0;
+  let boostPressed = false;
   for (let i = 0; i < 60 * 5; i++) {
     const input: InputFrame = { move: s.steer, jumpHeld: true, jumpPressed: false, dash: 0 };
     if (!tookOff) {
@@ -100,9 +111,16 @@ export function runStrategy(level: LevelData, cfg: MovementConfig, link: RouteLi
         dashIdx++;
       }
       // Buffered jump just before touching a springcap.
-      if (s.boost) {
+      if (s.boost && !boostPressed) {
         for (const sp of world.springs) {
-          if (Math.abs(p.x + p.vx * 0.06 - sp.x) < 12 && p.y - (sp.top + 12) < 14 && p.y >= sp.top) input.jumpPressed = true;
+          if (!sp.solid.active) continue;
+          const contactNextStep = Math.abs(p.x + p.vx * SIM_DT - sp.x) < 14 && p.y - (sp.top + 12) < 14 && p.y >= sp.top;
+          const lateContact = p.ascent === 'spring' && p.springLate > 0 && p.lastSpring === sp.solid.spring;
+          if (contactNextStep || lateContact) {
+            input.jumpPressed = true;
+            boostPressed = true;
+            break;
+          }
         }
       }
     }
@@ -112,7 +130,7 @@ export function runStrategy(level: LevelData, cfg: MovementConfig, link: RouteLi
     if (tookOff && airT > 0 && p.grounded) {
       const g = groundUnder(world.solids, p);
       if (!g) continue;
-      if (g.id === link.to) return { airTime: airT, takeoffX: s.takeoffX, landX: p.x };
+      if (g.id === link.to) return { airTime: airT, takeoffX: s.takeoffX, landX: p.x, landVx: p.vx, landingRoom: level.platforms[link.to].x1 - p.x, dashes: s.dashes, steer: s.steer };
       if (g.id !== link.from || airT > 0.2) return null;
     }
   }
@@ -126,7 +144,9 @@ function strategies(level: LevelData, link: RouteLink): Strategy[] {
   // Last stretch of the takeoff platform, plus anywhere directly beneath the target.
   for (let x = from.x1 - 1; x >= Math.max(from.x0 + 8, from.x1 - 70); x -= 6) xs.add(x);
   for (let x = Math.max(from.x0 + 8, to.x0 + 6); x <= Math.min(from.x1 - 1, to.x1 - 6); x += 12) xs.add(x);
-  if (link.move === 'spring' || link.move === 'springBoost') {
+  // Wind routes may share a spring fork: also sample deliberate jumps before
+  // the cap, rather than only the tiny stretch after it.
+  if (link.move === 'spring' || link.move === 'springBoost' || link.move === 'wind') {
     for (const sp of level.springs) {
       if (sp.top !== from.top || sp.x < from.x0 || sp.x > from.x1) continue;
       for (let x = sp.x - 60; x <= sp.x - 8; x += 6) if (x > from.x0 + 6) xs.add(x);
@@ -154,17 +174,30 @@ export function validateLink(level: LevelData, cfg: MovementConfig, link: RouteL
   const okTakeoffs = new Set<number>();
   let tried = 0;
   let best: StrategyOutcome | null = null;
+  const outcomes: StrategyOutcome[] = [];
   for (const s of strats) {
     if (okTakeoffs.has(s.takeoffX)) continue;
     tried++;
     const out = runStrategy(level, cfg, link, s, paradeDone);
     if (out) {
       okTakeoffs.add(s.takeoffX);
+      outcomes.push(out);
       if (!best || out.airTime < best.airTime) best = out;
-      if (okTakeoffs.size >= needed) break;
     }
   }
-  return { link, ok: okTakeoffs.size >= needed, successes: okTakeoffs.size, tried, best };
+  const takeoffWindows: LinkResult['takeoffWindows'] = [];
+  for (const x of [...okTakeoffs].sort((a, b) => a - b)) {
+    const last = takeoffWindows.at(-1);
+    // The position grid is 6px near edges and 12px underneath a receiver.
+    const missedSample = last && strats.some(s => s.takeoffX > last.maxX && s.takeoffX < x && !okTakeoffs.has(s.takeoffX));
+    if (last && x - last.maxX <= 12 && !missedSample) {
+      last.maxX = x;
+      last.width = x - last.minX;
+      last.secondsAtRunSpeed = last.width / cfg.runSpeed;
+    } else takeoffWindows.push({ minX: x, maxX: x, width: 0, secondsAtRunSpeed: 0 });
+  }
+  const widestWindow = Math.max(0, ...takeoffWindows.map(w => w.width));
+  return { link, ok: okTakeoffs.size >= needed, successes: okTakeoffs.size, tried, best, takeoffWindows, widestWindow, outcomes };
 }
 
 /** Distance (px) between the parade trigger and the nearest revealed surface. */

@@ -427,6 +427,10 @@ export class GameRenderer {
           P.emit('dust', e.x, e.y + 11, 8, -e.dir, 0);
           P.emit(poppy ? 'petal' : 'droplet', e.x, e.y + 12, 6, -e.dir, 0);
           break;
+        case 'skim':
+          P.emit('wake', e.x, e.y + 2, 6, -w.player.facing, 0.25);
+          P.emit('dew', e.x, e.y + 3, 4, 0, 1);
+          break;
         case 'spring':
           P.emit(poppy ? 'petal' : 'droplet', e.x, e.y, e.boosted ? 12 : 7, 0, 1);
           P.emit('sparkle', e.x, e.y, e.boosted ? 8 : 3, 0, 1);
@@ -678,6 +682,7 @@ export class GameRenderer {
     if (p.dashing) return 'dash';
     if (!p.grounded) {
       if (p.sinceLand < 0.025 && p.vy > 0) return 'land';
+      if (p.sinceSkim < 0.09 && p.vy > 0) return 'rebound';
       if (p.ascent === 'spring' && p.vy > 120) return 'rebound';
       if (p.ascent === 'jump' && p.airTime < 0.035) return 'launch';
       if (p.vy > 70) return 'jump';

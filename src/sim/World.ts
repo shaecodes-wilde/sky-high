@@ -237,6 +237,7 @@ export class World {
 
     const p = this.player;
     p.step(dt, input, this.solids, this.winds);
+    const processedPlayerEvents = p.events.length;
     for (const e of p.events) {
       this.events.push(e);
       if (e.type === 'spring') {
@@ -270,6 +271,11 @@ export class World {
       }
       r.inside = inside;
     }
+
+    // Contacts replenish the charge before the queued command is resolved.
+    // Append only new events: landing/spring/Bloom effects were handled above.
+    p.resolveBufferedDash();
+    for (let i = processedPlayerEvents; i < p.events.length; i++) this.events.push(p.events[i]);
 
     // Collectibles.
     this.seedChainTimer -= dt;

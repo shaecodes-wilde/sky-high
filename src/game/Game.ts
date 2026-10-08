@@ -404,6 +404,9 @@ export class Game {
         case 'dash':
           A.play('dash');
           break;
+        case 'skim':
+          A.play('skim', { speed: e.speed });
+          break;
         case 'spring':
           A.play(e.boosted ? 'springBoost' : 'spring');
           break;

@@ -1,0 +1,32 @@
+{
+  "method": "Automated T3 Chromium browser against npm run preview on localhost:4173",
+  "codeCommit": "124d466",
+  "menu": {
+    "audio": "running",
+    "codeRules": 60,
+    "developerSession": false,
+    "level": "morning-that-forgot",
+    "menu": "setup",
+    "noDeveloperPanel": true,
+    "production": true,
+    "query": "?playground",
+    "title": "Cloudbloom: A Sky Out of Tune"
+  },
+  "gameplay": {
+    "audio": "suspended",
+    "character": "poppy",
+    "developerSession": false,
+    "grounded": true,
+    "level": "morning-that-forgot",
+    "noDeveloperPanel": true,
+    "state": "playing",
+    "steps": 60,
+    "vx": 132,
+    "x": 149.46666666666667
+  },
+  "limitations": [
+    "The immediate audio state after resume was sampled before awaiting its asynchronous completion; the earlier Start click reached running.",
+    "The desktop preview automation host disconnected before a final production Parade performance benchmark; that benchmark was not run.",
+    "No remote/static-host deployment was tested."
+  ]
+}

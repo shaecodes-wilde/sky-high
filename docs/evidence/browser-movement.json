@@ -1,0 +1,132 @@
+{
+  "date": "2026-10-07 America/Halifax",
+  "method": "T3 collaborative Chromium preview; automated DOM controls, Input edge events and debug stepping. Not human playtesting.",
+  "playground": {
+    "audioContext": "running",
+    "playgroundReplay": {
+      "exact": true,
+      "recording": false,
+      "recordsEligible": false,
+      "section": 2,
+      "steps": 90
+    }
+  },
+  "charactersAndPresentation": {
+    "normalUI": {
+      "character": "poppy",
+      "level": "morning-that-forgot",
+      "noDeveloperPanel": true,
+      "state": "paused"
+    },
+    "parityRuns": [
+      {
+        "bloom": 0,
+        "character": "poppy",
+        "end": [
+          355,
+          64,
+          0,
+          0,
+          1,
+          0
+        ],
+        "identical": true,
+        "preset": "gentle",
+        "steps": 180
+      },
+      {
+        "bloom": 1,
+        "character": "poppy",
+        "end": [
+          355,
+          64,
+          0,
+          0,
+          1,
+          0
+        ],
+        "identical": true,
+        "preset": "standard",
+        "steps": 180
+      },
+      {
+        "bloom": 1,
+        "character": "poppy",
+        "end": [
+          355,
+          64,
+          0,
+          0,
+          1,
+          0
+        ],
+        "identical": true,
+        "preset": "vivid",
+        "steps": 180
+      },
+      {
+        "bloom": 0,
+        "character": "puddlewick",
+        "end": [
+          355,
+          64,
+          0,
+          0,
+          1,
+          0
+        ],
+        "identical": true,
+        "preset": "gentle",
+        "steps": 180
+      },
+      {
+        "bloom": 1,
+        "character": "puddlewick",
+        "end": [
+          355,
+          64,
+          0,
+          0,
+          1,
+          0
+        ],
+        "identical": true,
+        "preset": "standard",
+        "steps": 180
+      },
+      {
+        "bloom": 1,
+        "character": "puddlewick",
+        "end": [
+          355,
+          64,
+          0,
+          0,
+          1,
+          0
+        ],
+        "identical": true,
+        "preset": "vivid",
+        "steps": 180
+      }
+    ]
+  },
+  "normalRafPerformance": {
+    "character": "puddlewick",
+    "frames": 119,
+    "meanFrameMs": 16.668067226890756,
+    "meanRenderCpuMs": 1.6280991735075376,
+    "p95FrameMs": 16.80000000000291,
+    "p95RenderCpuMs": 3.5,
+    "preset": "vivid",
+    "simulationSteps": 119,
+    "state": "playing"
+  },
+  "limitations": [
+    "The first high-volume synchronous 1080-render stress evaluation timed out and its preview later detached. No result or stress-performance claim is made from that call.",
+    "A fresh preview passed the six smaller parity checks and normal requestAnimationFrame sampling.",
+    "The fresh preview logged Electron preload startup errors; game modules and browser automation then worked.",
+    "Focus changes caused the expected automatic pause; deterministic checks resumed with the debug handle and cancelled the live RAF while stepping.",
+    "No human full run, Firefox/Safari, physical 30/120/144Hz display, touch/gamepad, or sustained long-session stress test."
+  ]
+}

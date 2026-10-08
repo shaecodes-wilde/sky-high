@@ -54,6 +54,19 @@ Menus work with the arrow keys plus `Enter`, or with the mouse.
 
 See **[docs/STATUS.md](docs/STATUS.md)** for exactly what is complete, what is a placeholder, which tests were run, and measured performance.
 
+### Momentum movement build
+
+The movement overhaul conserves dash/wind speed, buffers dash commands for 100 ms,
+supports immediate cloud-skimming rebounds, and separates Time Trial split gates
+from respawn flowers. Level 1 receivers and spring forks are measured with the
+production physics. See [the movement handoff and playtest checklist](docs/MOVEMENT.md)
+and [continuous route evidence](docs/ROUTES.md).
+
+For the eight-section developer playground, run `npm run dev` and open
+`http://localhost:5173/?playground`. It has velocity/timer telemetry, section
+resets, fixed-step input recording/replay and trajectory comparison. It is
+excluded from production builds and Time Trial records.
+
 ## Project layout
 
 ```
@@ -75,7 +88,7 @@ docs/          STATUS.md, ASSETS.md, AUDIO.md, screenshots/
 ### Editing
 
 - **Movement:** change values in `src/config/movement.ts`. If the change affects run times, bump `MOVEMENT_RULES_VERSION` so old records aren't compared with new ones.
-- **Level:** edit `src/level/level1.ts`. Every `link(...)` on the normal route is replayed with the real controller in `tests/level.test.ts`, so `npm test` tells you whether a gap can actually be crossed.
+- **Level:** edit `src/level/level1.ts`. Every `link(...)` is replayed with the real controller and reports viable sampled takeoff windows. `tests/traversal.test.ts` also replays connected comfort/flow/express routes with carried velocity, refills, hazards and the actual Parade reveal.
 - **Art:** all sprites are drawn in code in `src/render/characters.ts` and `src/render/props.ts`. To view every character frame at 4×, open `/?sheet` on the dev server.
 - **Music:** see [docs/AUDIO.md](docs/AUDIO.md).
 

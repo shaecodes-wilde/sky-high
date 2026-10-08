@@ -185,7 +185,8 @@ export class Game {
     this.restartRun();
     this.ui.closeMenu();
     this.ui.setHudVisible(true);
-    if (this.settings.mode === 'adventure') this.ui.caption('The sky has forgotten its morning song…', 4);
+    if (this.playground) this.ui.toast('Developer playground · section resets and replays cannot set records', 3);
+    else if (this.settings.mode === 'adventure') this.ui.caption('The sky has forgotten its morning song…', 4);
     else this.ui.toast('Time Trial — clean run from the start', 2.5);
   }
 
@@ -279,8 +280,10 @@ export class Game {
     const mode = this.settings.mode;
     const key = recordKey(this.level.id, this.settings.assist);
     let result = { best: getRecord(this.store, key).bestTime, previousBest: getRecord(this.store, key).bestTime, newBest: false, bestSplits: getRecord(this.store, key).bestSplits };
-    // A legitimate full run passes every checkpoint; anything else is practice.
-    if (mode === 'timeTrial' && this.practice === null && w.splits.some((s) => s === null)) this.practice = 'skipped checkpoints';
+    // All legitimate lanes cross progression gates; respawn flowers are optional.
+    if (mode === 'timeTrial' && this.practice === null) {
+      this.practice = w.runInvalidReason ?? (!w.progressionComplete ? 'skipped split gates' : null);
+    }
     const clean = !this.playground && mode === 'timeTrial' && this.practice === null;
     if (clean) {
       const prevSplits = result.bestSplits;
@@ -426,19 +429,26 @@ export class Game {
           A.play('keepsake');
           this.ui.toast(`Keepsake found: ${this.level.keepsakes[e.index].name}`);
           break;
-        case 'checkpoint': {
-          A.play('checkpoint');
-          if (this.settings.mode === 'timeTrial') {
+        case 'checkpoint':
+          if (this.settings.mode === 'adventure') A.play('checkpoint');
+          break;
+        case 'split': {
+          if (!this.playground && this.settings.mode === 'timeTrial') {
+            A.play('checkpoint');
             const rec = getRecord(this.store, recordKey(this.level.id, this.settings.assist));
             const best = rec.bestSplits[e.index] ?? null;
-            const now = this.world.splits[e.index] ?? this.world.time;
+            const now = e.time;
             const delta = best !== null ? ` <span class="${now - best <= 0 ? 'ahead' : 'behind'}">${formatDelta(now - best)}</span>` : '';
-            this.ui.toast(`Bloom ${e.index + 1} · ${formatTime(now)}${delta}`);
+            this.ui.toast(`Split ${e.index + 1} · ${formatTime(now)}${delta}`);
           }
           break;
         }
         case 'death':
           A.play('death');
+          this.markPractice('death');
+          break;
+        case 'progressionInvalid':
+          this.markPractice(e.reason);
           break;
         case 'respawn':
           A.play('respawn');

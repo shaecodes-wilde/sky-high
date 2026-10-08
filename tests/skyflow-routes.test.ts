@@ -25,7 +25,7 @@ describe('continuous Skyflow routes through real World', () => {
       expect(run.validity.paradeTriggered).toBe(true);
     }
     for (const physical of evidence.physical) expect(physical.matchesInputRecipe, physical.route).toBe(true);
-  });
+  }, 15_000);
 
   for (const route of LAB_ROUTES) it(`replays ${route} with exact carried roll, pump, contact, charge and world state`, () => {
     const original = runLab(route);

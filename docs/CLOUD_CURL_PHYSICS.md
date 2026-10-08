@@ -45,7 +45,7 @@ Signed surface speed `u = vx / T.x`. Each fixed step applies, in order:
 
 Grounded rolling caps signed surface speed before and after wind. The global invariant is the horizontal cap; it does not impose a 300px/s airborne vector-magnitude cap. Ordinary standing ground/air controls remain separate and preserve earned overspeed with decay rather than clamping it to run speed.
 
-Ground following subdivides horizontal/vertical motion to at most `max(0.05,min(0.5,w/4,h/4))` px and resolves blocking boundaries by bisection. Adjacent surfaces join only at matching x endpoints (1e-4px tolerance) and heights (0.01px). No gap or step is repaired by arbitrary route snapping. Airborne movement with curved solids uses the production diagonal sweep; flat-only scenes retain the legacy axis path. Curved contact must be tested as a complete moving-body landing, including two-way uphill contact.
+Ground following subdivides horizontal/vertical motion to at most `max(0.05,min(0.5,w/4,h/4))` px and resolves blocking boundaries by bisection. When a subdivision crosses the last support boundary, it follows contact to the exact endpoint of the body's trailing foot span before using the departure tangent; leaving from an interior sample can otherwise hit the same one-way curve and falsely cancel momentum. Adjacent surfaces join only at matching x endpoints (1e-4px tolerance) and heights (0.01px). No gap or step is repaired by arbitrary route snapping. Airborne movement with curved solids uses the production diagonal sweep; flat-only scenes retain the legacy axis path. Curved contact must be tested as a complete moving-body landing, including two-way uphill contact.
 
 ## Pumps: geometry, gesture, reward
 

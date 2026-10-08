@@ -53,7 +53,7 @@ Current numeric comparisons are retained in the JSON `comparison`, `pumpComparis
 | Skyway | 17.700s | 0 / 290.800px/s | 4.150s | 3 / 3 / 1 |
 | Missed Skyway | 19.183s | 0 / 290.800px/s | 2.950s | 3 / 2 / 1 |
 
-These four full physical keyboard tapes reproduce the direct recipes exactly and have identical outcomes at 30/60/144fps. Garden uses normal uphill running before rolling into the downhill finish; its high final speed does not imply required pumps. Canonical Skyway saves 10.367s over Garden and 1.367s over Flow; the miss costs 1.483s. The expanded matrix currently identifies two departure-edge wall events (`lab/flow/entry-132`, `level1/skyflow/entry-225`), so do not call the whole matrix reliable until its JSON passes after an owned correction.
+These four full physical keyboard tapes reproduce the direct recipes exactly and have identical outcomes at 30/60/144fps. Garden uses normal uphill running before rolling into the downhill finish; its high final speed does not imply required pumps. Canonical Skyway saves 10.367s over Garden and 1.367s over Flow; the miss costs 1.483s. All 72 declared cases pass with zero deaths, respawns and wall impacts after the exact endpoint repair. The matrix originally exposed two departure-curve self-hits that forced vx to zero; the terrain owner fixed support continuation to the exact endpoint before separation, with no geometry/tuning change or criteria waiver.
 
 | Actual x600 bowl entry vx | Full pumps | None / late-missed | Partial (first/third) | x1940 exit vx, all chains |
 | --- | ---: | ---: | ---: | ---: |
@@ -63,6 +63,10 @@ These four full physical keyboard tapes reproduce the direct recipes exactly and
 | 260 | 5.383s | 5.450s | 5.400s | 229.8px/s |
 
 Full chains save only 0.067–0.083s across the bowls; they produce higher immediate uphill speeds but exit drive equalizes at 229.8px/s. Partial/none/missed chains remain physically accessible. This is a modest skill reward, not evidence that the route is pump-gated. Whole Level 1 from rest measures Garden 56.217s, legacy Flow 55.717s, legacy Express 53.800s and additive Skyflow 49.917s, each with six splits/three fragments/natural Parade.
+
+The canonical missed Skyway lands on recovery terrain1002 at x3247.282,y27.818, then rejoins terrain1001 at x3674.051,y142.157 and finishes forward. This measured lower catch/rejoin differs from the successful upper route; it costs time without death or a velocity/resource reset. Exact velocities and tick times are retained in the artifact.
+
+Final validation: **470 tests in 17 files pass**, including the original 260; TypeScript/Vite production build passes; `git diff --check` passes. Retained [test JSON](evidence/skyflow-validation-tests.json) and [build output](evidence/skyflow-validation-build.txt) identify actual local commands/results. Only the expensive 72-case test has an explicit 15s test timeout to tolerate concurrent test workers; movement/timing acceptance is unchanged.
 
 For every case the artifact records entry/exit vx, completion time, fixed-step airborne/rolling occupancy, peak horizontal speed, actual landing coordinates/runtime solid/authored terrain IDs, slopes/curvature, carried charge, pump quality/valley/step, ring/dash events, recovery/rejoin, deaths/walls/respawns, splits, fragments and Parade. Landing geometry/signed speed come from the land event; timers/resources are end-of-tick snapshots, including any same-step rebound/refill/dash. Exit snapshots identify that same-step continuation.
 

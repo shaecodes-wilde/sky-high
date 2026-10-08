@@ -121,6 +121,7 @@ export function buildSkyflowEvidence() {
     skywayVsFlowSeconds: canonical.flow.time - canonical.skyway.time,
     missedPenaltySeconds: canonical.missed.time - canonical.skyway.time,
     humanComfortVerified: false, expertOptimizationVerified: false };
+  const level1Comparison = Object.fromEntries(levelRoutes.map(([route]) => [route, runs.find(r => r.id === `level1/${route}/entry-0`)!.time]));
   const failures = runs.filter(r => !r.passed).map(r => ({ id: r.id, failures: r.failures }));
   for (const p of physical) if (!p.matchesInputRecipe || p.frames.some(f => !f.sameOutcome || f.failures.length)) failures.push({ id: `physical/${p.route}`, failures: [
     ...(!p.matchesInputRecipe ? ['keyboard counterpart differs from direct recipe'] : []),
@@ -135,7 +136,7 @@ export function buildSkyflowEvidence() {
     boundary: 'single production World per run; initial fixtures declared; no intermediate reset/teleport/forced refill; all geometry and hazards active',
     defaults: MOVEMENT, levels: { laboratory: SKYFLOW_LEVEL.id, level1: LEVEL1.id },
     sections: SKYFLOW_SECTIONS, valleys: (SKYFLOW_LEVEL.terrain ?? []).flatMap(t => terrainValleys(t)),
-    passed: failures.length === 0, failures, comparison, pumpComparison, physical, runs,
+    passed: failures.length === 0, failures, comparison, level1Comparison, pumpComparison, physical, runs,
     limitations: ['Finite scripted sample matrix, not broad continuous timing tolerance or human comfort.',
       'Accepted pump rewards can clip at the cap; compare measured times/exit states, not event count alone.',
       'Timestamp/cadence and presentation parity are tested separately; browser/device latency, UI and sustained rendering are not established by this JSON.',
